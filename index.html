@@ -356,7 +356,8 @@
   // this site if it is unreachable. (GitHub Pages can be very slow on some networks.) If you change a photo
   // or tile later, update this commit id or the old copy keeps being served.
   const CDN = /[?&]nocdn/.test(location.search) ? "https://cdn.invalid/" : "https://cdn.jsdelivr.net/gh/lavanya-12-code/lahaul-igf0r4lx8a@2f240c800c74f2e4c18efe16996373f50799c32f/";   // ?nocdn tests the fallback
-  const asset = (p) => (/^(https?:|data:)/.test(p) ? p : CDN + p);
+  // photos/trip/ was added after the pinned commit, so those come straight from this site
+  const asset = (p) => (/^(https?:|data:)/.test(p) || p.startsWith("photos/trip/") ? p : CDN + p);
   function loadScript(p) {
     return new Promise((res, rej) => {
       const s = document.createElement("script"); s.src = CDN + p; s.onload = res;
@@ -379,11 +380,11 @@ const CONTENT = {
   song: "https://www.youtube.com/results?search_query=alfaaz+instrumental",
   stops: {
     delhi:       { when: "Day 1 · 24 May", photos: [["photos/places/delhi.jpg", "India Gate, before the long road north", "delhi"]] },
-    sundernagar: { when: "Day 1 · 24 May", photos: [["photos/places/sundernagar.jpg", "Sundernagar lake, end of day one", "sundernagar"]] },
-    sissu:       { when: "Day 2 · 25 May", photos: [["photos/himalayan.jpg", "The Himalayan, parked at base"], ["photos/places/atal.jpg", "Out of the Atal Tunnel into Lahaul", "atal"], ["photos/places/siddu.jpg", "Siddu, Himachal's steamed bread", "siddu"]] },
-    shashur:     { when: "From Sissu", photos: [["photos/places/shashur.jpg", "Shashur Gompa, above Keylong", "shashur"]] },
-    keylong:     { when: "From Sissu", photos: [["photos/places/keylong.jpg", "Keylong and the Bhaga valley", "keylong"]] },
-    jispa:       { when: "From Sissu", photos: [["photos/places/jispa.jpg", "The Bhaga river at Jispa", "jispa"]] },
+    sundernagar: { when: "Day 1 · 24 May", photos: [["photos/trip/sundernagar-crew.jpg", "The crew, end of day one", "prateek", "50% 8%"], ["photos/places/sundernagar.jpg", "Sundernagar lake, end of day one", "sundernagar"]] },
+    sissu:       { when: "Day 2 · 25 May", photos: [["photos/himalayan.jpg", "The Himalayan, parked at base", null, "50% 34%"], ["photos/trip/sissu-prayer-flags.jpg", "Saurabh among the prayer flags", "prateek", "50% 60%"], ["photos/places/atal.jpg", "Out of the Atal Tunnel into Lahaul", "atal"], ["photos/places/siddu.jpg", "Siddu, Himachal's steamed bread", "siddu"]] },
+    shashur:     { when: "From Sissu", photos: [["photos/trip/shashur-gompa.jpg", "Shashur Gompa, as they saw it", "prateek"], ["photos/trip/shashur-crew.jpg", "All four bikes parked up at the gompa", "prateek"]] },
+    keylong:     { when: "From Sissu", photos: [["photos/trip/keylong-lookout.jpg", "Looking out over the valley", "prateek", "50% 52%"], ["photos/trip/keylong-prayer-flag.jpg", "A prayer-flag stop on the climb", "prateek", "50% 70%"], ["photos/places/keylong.jpg", "Keylong and the Bhaga valley", "keylong"]] },
+    jispa:       { when: "From Sissu", photos: [["photos/trip/jispa-bridge.jpg", "Across the river on the Himalayan", "prateek", "50% 70%"], ["photos/trip/jispa-bro-marker.jpg", "The crew at the BRO marker", "prateek"], ["photos/places/jispa.jpg", "The Bhaga river at Jispa", "jispa"]] },
     baralacha:   { when: "From Sissu", photos: [["photos/riding.jpg", "Saurabh on the high road"], ["photos/places/baralacha.jpg", "The BRO sign at the top", "baralacha"]] },
     koksar:      { when: "From Sissu", photos: [["photos/places/koksar.jpg", "The Chandra valley near Koksar", "koksar"]] },
     delhi_end:   { when: "Day 8 · 31 May", photos: [["photos/places/delhi.jpg", "Home again", "delhi"]] },
@@ -504,10 +505,12 @@ const fmt = (n) => Math.round(n).toLocaleString("en-IN");
   // ---------- map ----------
   // Tile files are read in byte ranges. A CDN cache miss can answer with the whole file (200) instead of
   // the slice (206); stock pmtiles treats that as fatal and the map never loads. Accept both.
-  // If this site is slow (no answer in 7 s) or failing, switch that file to one whole download from the CDN
-  // mirror instead (its whole files are exact; its ranged replies are not, so ranges always come from here).
+  // If this site is slow (no answer in 6 s) or failing, every tile file switches together to one whole download
+  // each from the CDN mirror (its whole files are exact; its ranged replies are not, so ranges only come from here).
+  const tileNet = { viaCdn: Q.has("cdntiles"), cancel: new AbortController() };   // ?cdntiles tests the CDN path
+  function switchTilesToCdn() { if (!tileNet.viaCdn) { tileNet.viaCdn = true; tileNet.cancel.abort(); } }
   class RangeOrWholeSource {
-    constructor(url, cdnUrl) { this.url = url; this.cdnUrl = cdnUrl; this.whole = null; this.wholeP = null; this.useCdn = Q.has("cdntiles"); }
+    constructor(url, cdnUrl) { this.url = url; this.cdnUrl = cdnUrl; this.whole = null; this.wholeP = null; }
     getKey() { return this.url; }
     loadWhole(url) {
       if (!this.wholeP) this.wholeP = fetch(url).then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.arrayBuffer(); })
@@ -516,22 +519,25 @@ const fmt = (n) => Math.round(n).toLocaleString("en-IN");
     }
     async getBytes(offset, length, signal) {
       if (this.whole) return { data: this.whole.slice(offset, offset + length) };
-      if (!this.useCdn) {
-        for (let attempt = 0; attempt < 2; attempt++) {
-          const ctl = new AbortController(), stop = () => ctl.abort();
-          if (signal) signal.addEventListener("abort", stop);
-          const timer = setTimeout(stop, 7000);
-          try {
-            const headers = Q.has("norange") ? {} : { Range: `bytes=${offset}-${offset + length - 1}` };   // ?norange exercises the whole-file path
-            const r = await fetch(this.url, { headers, signal: ctl.signal });
-            if (r.status === 206) return { data: await r.arrayBuffer() };
-            if (r.ok) { this.whole = await r.arrayBuffer(); return { data: this.whole.slice(offset, offset + length) }; }
-            throw new Error(`HTTP ${r.status}`);
-          } catch (err) {
-            if (signal && signal.aborted) throw err;
-          } finally { clearTimeout(timer); if (signal) signal.removeEventListener("abort", stop); }
+      if (!tileNet.viaCdn) {
+        const ctl = new AbortController(), stop = () => ctl.abort();
+        if (signal) signal.addEventListener("abort", stop);
+        tileNet.cancel.signal.addEventListener("abort", stop);   // another file already gave up on this site
+        const timer = setTimeout(() => { switchTilesToCdn(); stop(); }, 6000);
+        try {
+          const headers = Q.has("norange") ? {} : { Range: `bytes=${offset}-${offset + length - 1}` };   // ?norange exercises the whole-file path
+          const r = await fetch(this.url, { headers, signal: ctl.signal });
+          if (r.status === 206) return { data: await r.arrayBuffer() };
+          if (r.ok) { this.whole = await r.arrayBuffer(); return { data: this.whole.slice(offset, offset + length) }; }
+          throw new Error(`HTTP ${r.status}`);
+        } catch (err) {
+          if (signal && signal.aborted) throw err;
+          switchTilesToCdn();
+        } finally {
+          clearTimeout(timer);
+          if (signal) signal.removeEventListener("abort", stop);
+          tileNet.cancel.signal.removeEventListener("abort", stop);
         }
-        this.useCdn = true;
       }
       try { await this.loadWhole(this.cdnUrl); } catch (e) { await this.loadWhole(this.url); }
       return { data: this.whole.slice(offset, offset + length) };
@@ -693,10 +699,11 @@ const fmt = (n) => Math.round(n).toLocaleString("en-IN");
     const car = $("car"); clearInterval(carTimer);
     const ph = s.photos || [];
     car.style.display = ph.length ? "block" : "none";
-    car.innerHTML = ph.map(([src, cap, cr], i) => {
-      const c = cr && credits[cr];
-      return `<img src="${asset(src)}" crossorigin="anonymous" onerror="this.onerror=null;this.removeAttribute('crossorigin');this.src='${src}'" alt="" class="${i ? "" : "on"}">` +
-        (c ? `<a class="credit" data-i="${i}" style="${i ? "display:none" : ""}" href="${c.page}" target="_blank" rel="noopener">Photo: ${c.author} · ${c.license}</a>` : "");
+    car.innerHTML = ph.map(([src, cap, cr, focus], i) => {
+      const c = cr === "prateek" ? { author: "Prateek", page: "", license: "" } : cr && credits[cr];
+      return `<img src="${asset(src)}" style="object-position:${focus || "50% 50%"}" crossorigin="anonymous" onerror="this.onerror=null;this.removeAttribute('crossorigin');this.src='${src}'" alt="" class="${i ? "" : "on"}">` +
+        (c ? (c.page ? `<a class="credit" data-i="${i}" style="${i ? "display:none" : ""}" href="${c.page}" target="_blank" rel="noopener">Photo: ${c.author} · ${c.license}</a>`
+                     : `<span class="credit" data-i="${i}" style="${i ? "display:none" : ""}">Photo: ${c.author}</span>`) : "");
     }).join("") + `<div class="cap"><span id="cap-t">${ph[0] ? ph[0][1] : ""}</span><div class="dots">${ph.length > 1 ? ph.map((_, i) => `<i class="${i ? "" : "on"}"></i>`).join("") : ""}</div></div>`;
     if (ph.length > 1) {
       let i = 0;
