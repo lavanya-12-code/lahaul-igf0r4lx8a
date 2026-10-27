@@ -174,6 +174,29 @@
   .drop span { font-size: 13px; color: var(--muted); }
   #gpx-result { margin-top: 12px; }
 
+  /* ---------- rider profile ---------- */
+  .profile-tile { display: flex; align-items: center; gap: 12px; width: 100%; margin-top: 12px; background: var(--ink); color: #fff; border: 0; border-radius: 18px; padding: 12px 14px; cursor: pointer; text-align: left; }
+  .profile-tile img { width: 46px; height: 46px; border-radius: 50%; object-fit: cover; object-position: 50% 28%; border: 2px solid var(--accent); }
+  .profile-tile b { display: block; font-size: 15px; }
+  .profile-tile span { font-size: 12.5px; color: rgba(255,255,255,.7); }
+  .profile-tile i { margin-left: auto; font-style: normal; font-size: 20px; color: var(--accent); }
+  #profile .sheet { max-height: 94vh; padding-top: 10px; }
+  #stage { position: relative; height: 46vh; min-height: 300px; margin: 0 -20px; background: radial-gradient(ellipse at 50% 40%, #fff6ea 0%, #f3e6d3 60%, #ead9c2 100%); overflow: hidden; }
+  #stage canvas { display: block; width: 100% !important; height: 100% !important; cursor: grab; }
+  #stage .hint { position: absolute; left: 0; right: 0; bottom: 10px; text-align: center; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); pointer-events: none; }
+  #stage .loading { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: 14px; }
+  #bubble { position: absolute; left: 14px; right: 14px; bottom: 34px; background: #fff; border-radius: 16px; padding: 10px 12px; font-size: 14px; line-height: 1.4; box-shadow: 0 6px 20px rgba(40,30,20,.18); opacity: 0; transform: translateY(6px); transition: .3s; pointer-events: none; z-index: 2; }
+  #bubble.show { opacity: 1; transform: none; }
+  #bubble b { color: var(--accent-deep); }
+  .spec { margin-top: 16px; border: 1.5px solid var(--ink); border-radius: 16px; overflow: hidden; background: #fff; }
+  .spec .hd { background: var(--ink); color: #fff; padding: 10px 14px; display: flex; justify-content: space-between; align-items: baseline; font: 700 12px/1 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .1em; }
+  .spec .row { display: grid; grid-template-columns: 42% 58%; border-top: 1px solid var(--line); }
+  .spec .row:first-of-type { border-top: 0; }
+  .spec .k { padding: 10px 12px; font: 600 10.5px/1.35 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); background: var(--paper); }
+  .spec .v { padding: 10px 12px; font-size: 14px; line-height: 1.4; }
+  .spec .v .chips { margin: 0; }
+  .spec .ft { padding: 10px 14px; font: 600 10.5px/1.5 ui-monospace, "SF Mono", Menlo, monospace; color: var(--muted); border-top: 1.5px dashed var(--line); background: var(--paper); }
+
   /* ---------- end ---------- */
   #end .inner { text-align: left; }
   #end .portrait { width: 92px; height: 92px; border-radius: 50%; object-fit: cover; object-position: 50% 28%; border: 3px solid var(--accent); display: block; margin: 6px 0 14px; }
@@ -184,11 +207,10 @@
   .credits { font-size: 10.5px; color: var(--faint); margin-top: 18px; line-height: 1.6; }
   .credits a { color: var(--faint); }
 
-  /* rider marker */
-  .rider { width: 46px; height: 58px; position: relative; pointer-events: none; }
-  .rider img { position: absolute; left: 0; top: 0; width: 100%; height: 100%; transition: opacity .25s; }
-  .rider img.top { width: 30px; height: 60px; left: 8px; top: -1px; }
-  .rider .bob { position: absolute; inset: 0; animation: bob .5s ease-in-out infinite alternate; }
+  /* chase-cam rider: pinned where the camera follows the route, so it never jitters against the terrain */
+  #chase-rider { position: fixed; left: 50%; width: 30px; height: 38px; margin-left: -15px; pointer-events: none; transition: opacity .4s; z-index: 1; }
+  #chase-rider .lean { position: absolute; inset: 0; transform-origin: 50% 100%; }
+  #chase-rider img { position: absolute; inset: 0; width: 100%; height: 100%; animation: bob .45s ease-in-out infinite alternate; }
   @keyframes bob { to { transform: translateY(-1.5px); } }
 
   body.rec .maplibregl-ctrl-attrib, body.rec #close, body.rec #card .tap { display: none; }
@@ -205,6 +227,7 @@
   <div class="p"><div class="k">Day</div><div class="v" id="s-day">1<small>/8</small></div></div>
 </div>
 <div id="leg" class="hidden"></div>
+<div id="chase-rider" class="hidden"><div class="lean"><img src="art/rider-rear.svg" alt=""></div></div>
 <button id="close" class="hidden" aria-label="Back to the atlas">✕</button>
 
 <!-- helmet cam overlay -->
@@ -236,10 +259,11 @@
   <div class="grab"></div>
   <div id="otd"><div class="eyebrow">On this day</div><p id="otd-text"></p></div>
   <div class="who">
-    <img class="avatar" src="photos/saurabh.jpg" alt="Saurabh">
+    <img class="avatar" src="photos/saurabh.jpg" alt="Saurabh" id="avatar" style="cursor:pointer">
     <div><div class="eyebrow">Saurabh's Ride Atlas</div><h1>Every road you ride, in 3D</h1></div>
   </div>
   <div class="chips" id="traits"></div>
+  <button class="profile-tile" id="open-profile"><img src="photos/saurabh.jpg" alt=""><div><b>Rider profile</b><span>Spin him around. Read the spec sheet.</span></div><i>›</i></button>
   <p class="what">This is your atlas: a home for every road you ride. Each ride becomes a chapter you can fly through, explore, and show off. Every ride also earns stickers for your helmet. <b>Chapter one is Lahaul.</b></p>
 
   <div class="chapter">
@@ -290,6 +314,15 @@
   <div style="margin-top:12px;font-size:13px;color:var(--muted)">Lifetime odometer</div>
   <div class="meter"><i id="odo-bar"></i></div>
   <div style="font-size:12.5px;color:var(--muted)" id="odo-text"></div>
+</div></div>
+
+<!-- rider profile -->
+<div id="profile" class="modal hidden"><div class="sheet">
+  <div class="grab"></div><button class="x" data-close style="z-index:2">✕</button>
+  <div class="eyebrow">Rider profile</div>
+  <h2 style="margin-bottom:12px">Saurabh, 3D</h2>
+  <div id="stage"><div class="loading">Assembling the rider…</div><div id="bubble"></div><div class="hint">Drag to spin · tap any part</div></div>
+  <div class="spec" id="spec"></div>
 </div></div>
 
 <!-- add a ride -->
@@ -357,6 +390,38 @@ const STICKERS = [
   { id: "life5",   e: "🧭", t: "5K",        bg: "#4f7d4a", x: 46, y: 72, name: "Lifetime 5,000",   how: "5,000 km across your whole atlas.",      when: (a) => a.lifeKm >= 5000 },
   { id: "pillion", e: "💞", t: "PILLION",   bg: "#c2456b", x: 59, y: 70, name: "Pillion Pact",     how: "A ride with Lavanya on the back.",        when: (a) => a.pillion },
 ];
+
+// Rider profile: the spec sheet, and what each tappable part of the 3D model says.
+const PROFILE = {
+  spec: [
+    ["Model", "White Chocolate"],
+    ["Model year", "1993"],
+    ["Date of manufacture", "28 October 1993"],
+    ["Variant", "Night Owl Edition"],
+    ["Features", ["🎸 Sings", "🧰 Provides", "🧡 Cares", "😊 Smiles and keeps you happy"]],
+    ["Engine", "Coffee-powered. Peak performance after midnight."],
+    ["Sound system", "Live vocals and guitar. Exports straight to WhatsApp voice notes."],
+    ["Exterior", "Burnt-orange puffer. Premium salt-and-pepper beard. Camo lid."],
+    ["Max altitude tested", "4,907 m, Baralacha La"],
+    ["Fuel economy", "About one coffee every 50 km (estimated)"],
+    ["Known quirks", "Talks sweetly to every stranger. Always says yes to one more song."],
+    ["Service interval", "Every 28 October. Cake mandatory."],
+    ["Warranty", "Lifetime. Non-transferable. Registered owner: Lavanya."],
+  ],
+  footer: "Spec sheet issued 28 Oct 2026 · 33 years on the road · condition: excellent",
+  parts: {
+    coffee: "<b>Fuel system.</b> Coffee. Strong, frequent, non-negotiable.",
+    guitar: "<b>Sound system.</b> Sings, plays, records songs, and sends them to Lavanya.",
+    helmet: "<b>Camo lid.</b> Max altitude tested: 4,907 m. GoPro and intercom fitted.",
+    beard: "<b>Beard.</b> Premium salt-and-pepper finish. Hand-grown, never rushed.",
+    smile: "<b>Smile.</b> Standard on every model. Keeps you happy.",
+    face: "<b>Night Owl Edition.</b> Most alive after midnight.",
+    hair: "<b>Hair.</b> Wind-tested at 4,907 m. Still perfect.",
+    earplug: "<b>Ear tunnel.</b> Factory fitted. Very cool.",
+    jacket: "<b>Burnt-orange puffer.</b> Visible from Baralacha La. Huggable.",
+    boots: "<b>Boots.</b> Shows up, every time. Provides. Cares.",
+  },
+};
 
 const Q = new URLSearchParams(location.search);
 const REC = Q.has("rec");   // video capture mode
@@ -445,6 +510,7 @@ const fmt = (n) => Math.round(n).toLocaleString("en-IN");
         route: { type: "geojson", lineMetrics: true, data: { type: "Feature", geometry: { type: "LineString", coordinates: track.map((t) => [t[0], t[1]]) } } },
         stops: { type: "geojson", data: { type: "FeatureCollection", features: stats.waypoints.filter((w) => w.id !== "delhi_end").map((w) => ({ type: "Feature", properties: { id: w.id, name: w.name }, geometry: { type: "Point", coordinates: [w.lon, w.lat] } })) } },
         gpx: { type: "geojson", data: { type: "FeatureCollection", features: [] } },
+        rider: { type: "geojson", data: { type: "FeatureCollection", features: [] } },
       },
       layers: [
         { id: "bg", type: "background", paint: { "background-color": "#e7decf" } },
@@ -457,6 +523,7 @@ const fmt = (n) => Math.round(n).toLocaleString("en-IN");
         { id: "gpx-line", type: "line", source: "gpx", layout: { "line-join": "round", "line-cap": "round" }, paint: { "line-color": "#2e5e7e", "line-width": 4 } },
         { id: "stops", type: "circle", source: "stops", paint: { "circle-radius": 5, "circle-color": "#fff", "circle-stroke-color": "#1e1c1a", "circle-stroke-width": 2, "circle-pitch-alignment": "map" } },
         { id: "stops-hit", type: "circle", source: "stops", paint: { "circle-radius": 22, "circle-opacity": 0 } },
+        { id: "rider", type: "symbol", source: "rider", layout: { "icon-image": "rider-top", "icon-size": 0.5, "icon-rotate": ["get", "heading"], "icon-rotation-alignment": "map", "icon-pitch-alignment": "viewport", "icon-allow-overlap": true, "icon-ignore-placement": true } },
       ],
       terrain: { source: "dem", exaggeration: 1.35 },
       sky: { "sky-color": "#86b3db", "horizon-color": "#f7d9b9", "fog-color": "#efe2d0", "sky-horizon-blend": 0.6, "horizon-fog-blend": 0.55, "fog-ground-blend": 0.65, "atmosphere-blend": 0.4 },
@@ -467,21 +534,27 @@ const fmt = (n) => Math.round(n).toLocaleString("en-IN");
   const mapReady = new Promise((r) => map.once("load", r));
   const setGestures = (on) => ["dragPan", "touchZoomRotate", "dragRotate", "scrollZoom", "touchPitch"].forEach((h) => map[h][on ? "enable" : "disable"]());
 
-  // ---------- the rider: him, from behind (chase cam) or from above (anything else) ----------
-  const riderEl = document.createElement("div");
-  riderEl.className = "rider";
-  riderEl.innerHTML = '<div class="bob"><img class="rear" src="art/rider-rear.svg" alt=""><img class="top" src="art/rider-top.svg" alt="" style="opacity:0"></div>';
-  const rider = new maplibregl.Marker({ element: riderEl, anchor: "bottom", pitchAlignment: "viewport", rotationAlignment: "viewport" }).setLngLat([track[0][0], track[0][1]]);
-  const rearImg = riderEl.querySelector(".rear"), topImg = riderEl.querySelector(".top");
-  function placeRider(p, heading) {
-    rider.setLngLat([p.lng, p.lat]);
-    const rel = ((heading - map.getBearing() + 540) % 360) - 180;
-    const behind = Math.abs(rel) < 40 && map.getPitch() > 35;
-    rearImg.style.opacity = behind ? 1 : 0;
-    topImg.style.opacity = behind ? 0 : 1;
-    topImg.style.transform = `rotate(${rel}deg)`;
-    rearImg.style.transform = `skewX(${-rel * 0.25}deg)`;
+  // ---------- the rider ----------
+  // Ride: a fixed overlay at the point the camera centres on (the head of the route line), leaning into bends.
+  // Explore: a map symbol drawn by MapLibre itself, so it stays glued to the terrain.
+  const chaseRider = $("chase-rider"), leanEl = chaseRider.querySelector(".lean");
+  let lean = 0;
+  function pinChaseRider() { chaseRider.style.top = Math.round(innerHeight * (1 - 0.22) / 2 - 36) + "px"; }
+  pinChaseRider(); addEventListener("resize", pinChaseRider);
+  function showChaseRider(on) { chaseRider.classList.toggle("hidden", !on); }
+  function leanRider(turnDeg, dt) {
+    lean += (Math.max(-14, Math.min(14, turnDeg * 0.6)) - lean) * Math.min(1, dt * 4);
+    leanEl.style.transform = `rotate(${lean.toFixed(2)}deg)`;
   }
+  function setExploreRider(p, heading) {
+    const src = map.getSource("rider"); if (!src) return;
+    src.setData(p ? { type: "Feature", properties: { heading }, geometry: { type: "Point", coordinates: [p.lng, p.lat] } } : { type: "FeatureCollection", features: [] });
+  }
+  map.on("load", () => {
+    const im = new Image(96, 192);
+    im.onload = () => { const c = document.createElement("canvas"); c.width = 96; c.height = 192; c.getContext("2d").drawImage(im, 0, 0, 96, 192); map.addImage("rider-top", c.getContext("2d").getImageData(0, 0, 96, 192), { pixelRatio: 2 }); };
+    im.src = "art/rider-top.svg";
+  });
   const headingAt = (km) => bearing(at(km - 0.4), at(km + 0.4));
 
   function setProgress(f) {
@@ -536,7 +609,7 @@ const fmt = (n) => Math.round(n).toLocaleString("en-IN");
       map.jumpTo({ center: [c.lng, c.lat], bearing: cam.bearing, zoom: cam.zoom, pitch: cam.pitch, padding: pad() });
     } else {
       map.jumpTo({ center: [p.lng, p.lat], bearing: cam.bearing, zoom: cam.zoom, pitch: cam.pitch, padding: pad() });
-      placeRider(p, headingAt(k));
+      leanRider(orbit ? 0 : diff, dt);
     }
   }
 
@@ -627,7 +700,7 @@ const fmt = (n) => Math.round(n).toLocaleString("en-IN");
     $("hud").classList.toggle("hidden", m === "helmet"); $("leg").classList.remove("hidden"); $("close").classList.remove("hidden");
     $("visor").classList.toggle("hidden", m !== "helmet");
     setGestures(false);
-    if (m === "helmet") rider.remove(); else rider.addTo(map);
+    showChaseRider(m !== "helmet"); setExploreRider(null);
     map.setTerrain({ source: "dem", exaggeration: m === "helmet" ? 1.15 : 1.35 });
     setProgress(at(km).frac);
     const p0 = at(km), p1 = at(km + (m === "helmet" ? 3 : 30)), seg0 = segs[i0] || segs[i0 - 1];
@@ -649,7 +722,7 @@ const fmt = (n) => Math.round(n).toLocaleString("en-IN");
   function finale() {
     running = false; hideAll();
     map.flyTo({ center: [77.02, 30.6], zoom: 6.6, pitch: 30, bearing: -8, padding: { top: 0, bottom: Math.round(innerHeight * 0.5), left: 0, right: 0 }, duration: 4200, essential: true });
-    setProgress(1); rider.remove();
+    setProgress(1); showChaseRider(false);
     $("end").classList.remove("hidden"); $("end").scrollTop = 0;
     window.__done = true;
   }
@@ -657,7 +730,7 @@ const fmt = (n) => Math.round(n).toLocaleString("en-IN");
   // gentle orbit over the valley behind the home sheet
   let orbiting = false;
   async function home() {
-    stopAll(); hideAll(); await mapReady; setGestures(false); rider.remove();
+    stopAll(); hideAll(); await mapReady; setGestures(false); showChaseRider(false); setExploreRider(null);
     mode = "chase";
     $("home").classList.remove("hidden");
     setProgress(1);
@@ -687,7 +760,7 @@ const fmt = (n) => Math.round(n).toLocaleString("en-IN");
   function setKm(k, moveCamera) {
     km = Math.max(0, Math.min(TOTAL, k));
     const p = updateHud(km);
-    setProgress(p.frac); placeRider(p, headingAt(km));
+    setProgress(p.frac); setExploreRider(p, headingAt(km));
     $("thumb").style.left = (km / TOTAL * 100) + "%";
     if (moveCamera) map.jumpTo({ center: [p.lng, p.lat] });
     return p;
@@ -706,7 +779,7 @@ const fmt = (n) => Math.round(n).toLocaleString("en-IN");
     await mapReady;
     document.body.classList.add("exploring");
     ["hud", "leg", "scrub"].forEach((id) => $(id).classList.remove("hidden"));
-    setGestures(true); rider.addTo(map);
+    setGestures(true); showChaseRider(false);
     const p = setKm(stops[ix("sissu")].km, false);
     map.flyTo({ center: [p.lng, p.lat], zoom: 10.5, pitch: 58, bearing: 20, padding: { top: 0, bottom: 160, left: 0, right: 0 }, duration: 2800, essential: true });
   }
@@ -717,7 +790,6 @@ const fmt = (n) => Math.round(n).toLocaleString("en-IN");
     if (!document.body.classList.contains("exploring")) return;
     const i = ix(e.features[0].properties.id); if (i >= 0) goStop(i);
   });
-  map.on("move", () => { if (document.body.classList.contains("exploring")) placeRider(at(km), headingAt(km)); });
 
   // ---------- helmet stickers ----------
   const atlasFacts = (extra) => {
@@ -753,6 +825,30 @@ const fmt = (n) => Math.round(n).toLocaleString("en-IN");
   function openModal(id) { $(id).classList.remove("hidden"); }
   document.querySelectorAll(".modal").forEach((m) => m.addEventListener("click", (e) => { if (e.target === m || e.target.hasAttribute("data-close")) m.classList.add("hidden"); }));
   function celebrate() { renderStickers(atlasFacts(), STICKERS.filter((s) => s.when(atlasFacts())).map((s) => s.id)); openModal("stickers"); }
+
+  // ---------- rider profile (3D, loaded only when opened) ----------
+  $("spec").innerHTML = `<div class="hd"><span>SPEC SHEET</span><span>№ 28-10-1993</span></div>` +
+    PROFILE.spec.map(([k, v]) => `<div class="row"><div class="k">${k}</div><div class="v">${Array.isArray(v) ? `<div class="chips">${v.map((c) => `<span class="chip">${c}</span>`).join("")}</div>` : v}</div></div>`).join("") +
+    `<div class="ft">${PROFILE.footer}</div>`;
+  let model = null, bubbleTimer = null;
+  async function openProfile() {
+    openModal("profile");
+    if (model) { model.resume(); model.resize(); return; }
+    try {
+      const { mountRider } = await import("./profile.js");
+      $("stage").querySelector(".loading").remove();
+      model = window.__rider = mountRider($("stage"), (tag) => {
+        const b = $("bubble"); b.innerHTML = PROFILE.parts[tag] || ""; b.classList.add("show");
+        clearTimeout(bubbleTimer); bubbleTimer = setTimeout(() => b.classList.remove("show"), 3200);
+      });
+      $("stage").querySelector(".hint").style.zIndex = 1;
+    } catch (e) {
+      $("stage").querySelector(".loading").textContent = "The 3D rider needs a newer browser, but the spec sheet still applies.";
+    }
+  }
+  $("open-profile").onclick = openProfile;
+  $("avatar").onclick = openProfile;
+  $("profile").addEventListener("click", (e) => { if ((e.target === $("profile") || e.target.hasAttribute("data-close")) && model) model.pause(); });
 
   // ---------- add a ride (GPX preview, local only) ----------
   $("gpx").onchange = async (e) => {
