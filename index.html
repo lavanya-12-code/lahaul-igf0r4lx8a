@@ -848,7 +848,8 @@ const fmt = (n) => Math.round(n).toLocaleString("en-IN");
     openModal("profile");
     if (model) { model.resume(); model.resize(); return; }
     try {
-      const { mountRider } = await import("./profile.js");
+      // versioned URL (never a stale cached copy); retry once with a fresh URL if the download drops
+      const { mountRider } = await import("./profile.js?v=4").catch(() => new Promise((r) => setTimeout(r, 1500)).then(() => import("./profile.js?v=4&retry=" + Date.now())));
       $("stage").querySelector(".loading").remove();
       model = window.__rider = mountRider($("stage"), (tag) => {
         const b = $("bubble"); b.innerHTML = PROFILE.parts[tag] || ""; b.classList.add("show");
@@ -856,7 +857,8 @@ const fmt = (n) => Math.round(n).toLocaleString("en-IN");
       });
       $("stage").querySelector(".hint").style.zIndex = 1;
     } catch (e) {
-      $("stage").querySelector(".loading").textContent = "Couldn't load the 3D rider. Check your connection and open this again.";
+      $("stage").querySelector(".loading").textContent = "Couldn't load the 3D rider. Check your connection and reload the page.";
+      model = null;
     }
   }
   document.querySelectorAll("#outfits button").forEach((b) => b.onclick = () => {
