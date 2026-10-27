@@ -356,8 +356,8 @@
   // this site if it is unreachable. (GitHub Pages can be very slow on some networks.) If you change a photo
   // or tile later, update this commit id or the old copy keeps being served.
   const CDN = /[?&]nocdn/.test(location.search) ? "https://cdn.invalid/" : "https://cdn.jsdelivr.net/gh/lavanya-12-code/lahaul-igf0r4lx8a@2f240c800c74f2e4c18efe16996373f50799c32f/";   // ?nocdn tests the fallback
-  // photos/trip/ was added after the pinned commit, so those come straight from this site
-  const asset = (p) => (/^(https?:|data:)/.test(p) || p.startsWith("photos/trip/") ? p : CDN + p);
+  // the trip/ photos were added after the pinned commit, so those come straight from this site
+  const asset = (p) => (/^(https?:|data:)/.test(p) || p.startsWith("trip/") ? p : CDN + p);
   function loadScript(p) {
     return new Promise((res, rej) => {
       const s = document.createElement("script"); s.src = CDN + p; s.onload = res;
@@ -380,11 +380,11 @@ const CONTENT = {
   song: "https://www.youtube.com/results?search_query=alfaaz+instrumental",
   stops: {
     delhi:       { when: "Day 1 · 24 May", photos: [["photos/places/delhi.jpg", "India Gate, before the long road north", "delhi"]] },
-    sundernagar: { when: "Day 1 · 24 May", photos: [["photos/trip/sundernagar-crew.jpg", "The crew, end of day one", "prateek", "50% 8%"], ["photos/places/sundernagar.jpg", "Sundernagar lake, end of day one", "sundernagar"]] },
-    sissu:       { when: "Day 2 · 25 May", photos: [["photos/himalayan.jpg", "The Himalayan, parked at base", null, "50% 34%"], ["photos/trip/sissu-prayer-flags.jpg", "Saurabh among the prayer flags", "prateek", "50% 60%"], ["photos/places/atal.jpg", "Out of the Atal Tunnel into Lahaul", "atal"], ["photos/places/siddu.jpg", "Siddu, Himachal's steamed bread", "siddu"]] },
-    shashur:     { when: "From Sissu", photos: [["photos/trip/shashur-gompa.jpg", "Shashur Gompa, as they saw it", "prateek"], ["photos/trip/shashur-crew.jpg", "All four bikes parked up at the gompa", "prateek"]] },
-    keylong:     { when: "From Sissu", photos: [["photos/trip/keylong-lookout.jpg", "Looking out over the valley", "prateek", "50% 52%"], ["photos/trip/keylong-prayer-flag.jpg", "A prayer-flag stop on the climb", "prateek", "50% 70%"], ["photos/places/keylong.jpg", "Keylong and the Bhaga valley", "keylong"]] },
-    jispa:       { when: "From Sissu", photos: [["photos/trip/jispa-bridge.jpg", "Across the river on the Himalayan", "prateek", "50% 70%"], ["photos/trip/jispa-bro-marker.jpg", "The crew at the BRO marker", "prateek"], ["photos/places/jispa.jpg", "The Bhaga river at Jispa", "jispa"]] },
+    sundernagar: { when: "Day 1 · 24 May", photos: [["trip/sundernagar-crew.jpg", "The crew, end of day one", "prateek", "50% 8%"], ["photos/places/sundernagar.jpg", "Sundernagar lake, end of day one", "sundernagar"]] },
+    sissu:       { when: "Day 2 · 25 May", photos: [["photos/himalayan.jpg", "The Himalayan, parked at base", null, "50% 34%"], ["trip/sissu-prayer-flags.jpg", "Saurabh among the prayer flags", "prateek", "50% 60%"], ["photos/places/atal.jpg", "Out of the Atal Tunnel into Lahaul", "atal"], ["photos/places/siddu.jpg", "Siddu, Himachal's steamed bread", "siddu"]] },
+    shashur:     { when: "From Sissu", photos: [["trip/shashur-gompa.jpg", "Shashur Gompa, as they saw it", "prateek"], ["trip/shashur-crew.jpg", "All four bikes parked up at the gompa", "prateek"]] },
+    keylong:     { when: "From Sissu", photos: [["trip/keylong-lookout.jpg", "Looking out over the valley", "prateek", "50% 52%"], ["trip/keylong-prayer-flag.jpg", "A prayer-flag stop on the climb", "prateek", "50% 70%"], ["photos/places/keylong.jpg", "Keylong and the Bhaga valley", "keylong"]] },
+    jispa:       { when: "From Sissu", photos: [["trip/jispa-bridge.jpg", "Across the river on the Himalayan", "prateek", "50% 70%"], ["trip/jispa-bro-marker.jpg", "The crew at the BRO marker", "prateek"], ["photos/places/jispa.jpg", "The Bhaga river at Jispa", "jispa"]] },
     baralacha:   { when: "From Sissu", photos: [["photos/riding.jpg", "Saurabh on the high road"], ["photos/places/baralacha.jpg", "The BRO sign at the top", "baralacha"]] },
     koksar:      { when: "From Sissu", photos: [["photos/places/koksar.jpg", "The Chandra valley near Koksar", "koksar"]] },
     delhi_end:   { when: "Day 8 · 31 May", photos: [["photos/places/delhi.jpg", "Home again", "delhi"]] },
