@@ -1,0 +1,168 @@
+{
+ "title": "Delhi to Lahaul",
+ "dates": "24 to 31 May 2026",
+ "rider": "Saurabh",
+ "bike": "Royal Enfield Himalayan 450",
+ "plate": "DL 10AH 2818",
+ "total_km": 1446.3,
+ "total_km_rounded": 1446,
+ "osrm_km": 1446.3,
+ "climb_m": 13600,
+ "highest": {
+  "name": "Baralacha La",
+  "ele": 4907,
+  "lon": 77.41677,
+  "lat": 32.75809
+ },
+ "days": 8,
+ "legs": [
+  {
+   "id": "out1",
+   "label": "Delhi to Sundernagar",
+   "when": "24 May",
+   "km": 406.5,
+   "gain": 1814.2,
+   "start_km": 0.0,
+   "max_ele": 946.6,
+   "tunnel_km": 6.1
+  },
+  {
+   "id": "out2",
+   "label": "Sundernagar to Sissu",
+   "when": "25 May",
+   "km": 167.8,
+   "gain": 3889.2,
+   "start_km": 406.5,
+   "max_ele": 3078.8,
+   "tunnel_km": 9.3
+  },
+  {
+   "id": "ride1",
+   "label": "Shashur Gompa",
+   "when": "From Sissu",
+   "km": 75.0,
+   "gain": 1278.9,
+   "start_km": 574.3,
+   "max_ele": 3514.8,
+   "tunnel_km": 0.0
+  },
+  {
+   "id": "ride2",
+   "label": "Keylong, Jispa and Baralacha La",
+   "when": "From Sissu",
+   "km": 211.8,
+   "gain": 3377.9,
+   "start_km": 649.4,
+   "max_ele": 4907.4,
+   "tunnel_km": 0.0
+  },
+  {
+   "id": "ride3",
+   "label": "Koksar",
+   "when": "From Sissu",
+   "km": 25.1,
+   "gain": 180.0,
+   "start_km": 861.1,
+   "max_ele": 3136.4,
+   "tunnel_km": 0.0
+  },
+  {
+   "id": "home",
+   "label": "Sissu to Delhi",
+   "when": "31 May",
+   "km": 560.1,
+   "gain": 3034.2,
+   "start_km": 886.2,
+   "max_ele": 3083.4,
+   "tunnel_km": 15.7
+  }
+ ],
+ "waypoints": [
+  {
+   "id": "delhi",
+   "name": "Delhi",
+   "lon": 77.209,
+   "lat": 28.6139,
+   "ele": 212,
+   "km": 0.0,
+   "line": "Where it started. An early alarm, a full tank, and a long road north."
+  },
+  {
+   "id": "sundernagar",
+   "name": "Sundernagar",
+   "lon": 76.8881,
+   "lat": 31.5281,
+   "ele": 886,
+   "km": 406.36,
+   "line": "Day one done. Rest the legs, rest the bike, go again tomorrow."
+  },
+  {
+   "id": "sissu",
+   "name": "Sissu",
+   "lon": 77.1323,
+   "lat": 32.4689,
+   "ele": 3026,
+   "km": 574.3,
+   "line": "Home for a week. Cold mornings, big mountains, the Himalayan parked outside."
+  },
+  {
+   "id": "shashur",
+   "name": "Shashur Gompa",
+   "lon": 77.0256,
+   "lat": 32.5793,
+   "ele": 3458,
+   "km": 610.89,
+   "line": "A monastery above the valley, and the kind of quiet Delhi never has."
+  },
+  {
+   "id": "keylong",
+   "name": "Keylong",
+   "lon": 77.0281,
+   "lat": 32.5718,
+   "ele": 3091,
+   "km": 681.27,
+   "line": "The heart of Lahaul, and the last proper chai before the high road."
+  },
+  {
+   "id": "jispa",
+   "name": "Jispa",
+   "lon": 77.1768,
+   "lat": 32.6354,
+   "ele": 3300,
+   "km": 703.17,
+   "line": "The river for company, riding deeper into the valley."
+  },
+  {
+   "id": "baralacha",
+   "name": "Baralacha La",
+   "lon": 77.41677,
+   "lat": 32.75809,
+   "ele": 4907,
+   "km": 755.21,
+   "line": "4,907 m. The highest point of the ride, and the top of the world for a day."
+  },
+  {
+   "id": "koksar",
+   "name": "Koksar",
+   "lon": 77.2339,
+   "lat": 32.4152,
+   "ele": 3104,
+   "km": 873.51,
+   "line": "Rolling back towards the tunnel with the whole valley behind him."
+  },
+  {
+   "id": "delhi_end",
+   "name": "Back in Delhi",
+   "lon": 77.209,
+   "lat": 28.6139,
+   "ele": 212,
+   "km": 1446.27,
+   "line": "1,446 km later. Home, but not quite the same."
+  }
+ ],
+ "sources": {
+  "routing": "OSRM (OpenStreetMap)",
+  "dem": "AWS Terrain Tiles (SRTM/Copernicus-derived), z12",
+  "tunnels": "OSM tunnel=yes ways, elevation interpolated"
+ }
+}
