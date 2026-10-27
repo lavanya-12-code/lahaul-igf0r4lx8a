@@ -1,6 +1,8 @@
 // Rider profile: a 3D Saurabh you can spin, poke and dress (ride kit / off duty).
 // Built in code from shapes and canvas textures, so it loads offline from the site itself.
-import * as THREE from "./three.module.min.js?v=160";   // versioned so a stale cached copy is never reused
+// three.js from the fast CDN mirror (pinned commit), else from this site; versioned so a stale copy is never reused
+const THREE = await import("https://cdn.jsdelivr.net/gh/lavanya-12-code/lahaul-igf0r4lx8a@2f240c800c74f2e4c18efe16996373f50799c32f/three.module.min.js")
+  .catch(() => import("./three.module.min.js?v=160"));
 
 const COL = {
   skin: 0xbf8a6c, hair: 0x241912, beard: 0x1e1915,
