@@ -4,207 +4,335 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex, nofollow, noarchive">
-<meta name="theme-color" content="#0f1112">
-<title>Lahaul, May 2026</title>
+<meta name="theme-color" content="#f6efe4">
+<title>Saurabh's Ride Atlas</title>
 <link rel="stylesheet" href="vendor/maplibre-gl.css">
 <style>
   :root {
-    --bg: #0f1112;
-    --ink: #ecebe7;
-    --muted: #9a9a96;
-    --faint: #5d5f5e;
-    --glass: rgba(16, 18, 19, 0.78);
-    --line: rgba(236, 235, 231, 0.12);
+    --paper: #fbf7f1;
+    --paper-2: #f3ece1;
+    --ink: #1e1c1a;
+    --muted: #6d675f;
+    --faint: #a39b90;
+    --line: rgba(30, 28, 26, 0.10);
     --accent: #e0662c;
-    --accent-soft: #f0a070;
+    --accent-deep: #b84a18;
+    --accent-tint: #fde7da;
+    --glass: rgba(251, 247, 241, 0.92);
+    --shadow: 0 12px 40px rgba(40, 30, 20, 0.22);
     --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "Segoe UI", Roboto, Inter, sans-serif;
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font-family: var(--font); overflow: hidden; }
+  html, body { margin: 0; height: 100%; background: #e9e1d3; color: var(--ink); font-family: var(--font); overflow: hidden; }
   #map { position: fixed; inset: 0; }
-  .maplibregl-ctrl-attrib { background: rgba(15,17,18,.6) !important; color: var(--muted); font-size: 10px; }
-  .maplibregl-ctrl-attrib a { color: var(--muted); }
-  .maplibregl-ctrl-attrib-button { filter: invert(1) opacity(.5); }
+  button { font-family: var(--font); }
+  .maplibregl-ctrl-attrib { background: rgba(251,247,241,.75) !important; font-size: 10px; }
+  .hidden { opacity: 0 !important; pointer-events: none !important; }
+  .gone { display: none !important; }
+  .eyebrow { font-size: 11px; font-weight: 650; letter-spacing: .16em; text-transform: uppercase; color: var(--accent-deep); }
 
-  .eyebrow { font-size: 11px; letter-spacing: .22em; text-transform: uppercase; color: var(--muted); }
-  .accent { color: var(--accent); }
-  button.pill {
-    appearance: none; border: 1px solid var(--accent); background: transparent; color: var(--ink);
-    font: 600 13px/1 var(--font); letter-spacing: .18em; text-transform: uppercase;
-    padding: 15px 26px; border-radius: 999px; cursor: pointer;
+  .btn {
+    appearance: none; border: 0; border-radius: 999px; cursor: pointer;
+    font: 650 15px/1 var(--font); padding: 15px 20px; display: inline-flex; align-items: center; gap: 8px; justify-content: center;
+    transition: transform .15s ease;
   }
-  button.pill:active { background: var(--accent); }
+  .btn:active { transform: scale(.97); }
+  .btn.primary { background: var(--accent); color: #fff; box-shadow: 0 6px 18px rgba(224,102,44,.35); }
+  .btn.dark { background: var(--ink); color: #fff; }
+  .btn.ghost { background: var(--paper-2); color: var(--ink); }
+  .btn.small { padding: 10px 14px; font-size: 13px; }
 
-  /* title */
-  #title {
-    position: fixed; inset: 0; display: flex; flex-direction: column; justify-content: flex-end;
-    padding: 0 28px calc(56px + env(safe-area-inset-bottom));
-    background: linear-gradient(180deg, rgba(15,17,18,.15) 0%, rgba(15,17,18,.55) 45%, rgba(15,17,18,.96) 78%);
-    transition: opacity 1.2s ease;
+  .sheet {
+    position: fixed; left: 0; right: 0; bottom: 0; max-height: 66vh; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    background: var(--glass); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+    border-radius: 26px 26px 0 0; box-shadow: var(--shadow);
+    padding: 10px 20px calc(22px + env(safe-area-inset-bottom));
+    transition: opacity .6s ease, transform .6s ease;
+    max-width: 520px; margin: 0 auto;
   }
-  #title h1 { font-size: clamp(54px, 17vw, 96px); font-weight: 700; letter-spacing: -.02em; line-height: .9; margin: 14px 0 16px; }
-  #title p { margin: 0 0 6px; color: var(--muted); font-size: 15px; line-height: 1.5; }
-  #title .rule { width: 44px; height: 2px; background: var(--accent); margin: 22px 0 30px; }
-  .hidden { opacity: 0; pointer-events: none; }
+  .sheet .grab { width: 40px; height: 4px; border-radius: 4px; background: var(--line); margin: 0 auto 14px; }
 
-  /* hud */
-  #hud {
-    position: fixed; left: 0; right: 0; top: 0; padding: calc(14px + env(safe-area-inset-top)) 18px 26px;
-    display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;
-    background: linear-gradient(180deg, rgba(15,17,18,.92), rgba(15,17,18,0));
-    transition: opacity .8s ease;
-  }
-  #hud .k { font-size: 9.5px; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); }
-  #hud .v { font-size: 19px; font-weight: 650; font-variant-numeric: tabular-nums; margin-top: 3px; white-space: nowrap; }
-  #hud .v small { font-size: 11px; font-weight: 500; color: var(--muted); margin-left: 2px; }
-  #leg { position: fixed; left: 18px; top: calc(76px + env(safe-area-inset-top)); font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--accent-soft); transition: opacity .8s; }
+  /* ---------- home ---------- */
+  #home .who { display: flex; gap: 14px; align-items: center; }
+  .avatar { width: 64px; height: 64px; border-radius: 50%; object-fit: cover; object-position: 50% 28%; border: 3px solid var(--accent); flex: none; background: var(--paper-2); }
+  #home h1 { margin: 2px 0 0; font-size: 26px; line-height: 1.1; letter-spacing: -.02em; }
+  #home .tag { color: var(--muted); font-size: 14px; margin-top: 3px; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin: 14px 0 0; }
+  .chip { background: var(--paper-2); border-radius: 999px; padding: 7px 11px; font-size: 12.5px; color: var(--ink); white-space: nowrap; }
+  #home .what { font-size: 15px; line-height: 1.55; color: #3b3732; margin: 16px 0 16px; }
+  #otd { display: none; background: var(--accent-tint); border-radius: 16px; padding: 12px 14px; margin-bottom: 14px; }
+  #otd p { margin: 4px 0 0; font-size: 15px; }
 
-  /* stop card */
+  .chapter { background: #fff; border-radius: 20px; padding: 16px; box-shadow: 0 2px 10px rgba(40,30,20,.06); border: 1px solid var(--line); }
+  .chapter h2 { margin: 6px 0 2px; font-size: 24px; letter-spacing: -.01em; }
+  .chapter .sub { color: var(--muted); font-size: 14px; }
+  .chapter .nums { display: flex; gap: 18px; margin: 14px 0 14px; }
+  .chapter .nums b { display: block; font-size: 19px; font-variant-numeric: tabular-nums; }
+  .chapter .nums span { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+  .chapter .acts { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .chapter .acts .wide { grid-column: 1 / -1; }
+  .chapter.next { margin-top: 10px; background: transparent; border: 1.5px dashed rgba(30,28,26,.18); box-shadow: none; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .chapter.next h3 { margin: 4px 0 2px; font-size: 16px; }
+
+  .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+  .tile { background: #fff; border: 1px solid var(--line); border-radius: 18px; padding: 12px; cursor: pointer; text-align: left; display: flex; flex-direction: column; gap: 6px; }
+  .tile .t { font-weight: 650; font-size: 14px; }
+  .tile .s { font-size: 12px; color: var(--muted); }
+  .tile img { width: 100%; height: 74px; object-fit: contain; }
+  #now { font-size: 12.5px; color: var(--muted); margin-top: 14px; line-height: 1.5; }
+  #now b { color: var(--ink); font-weight: 600; }
+
+  /* ---------- ride HUD ---------- */
+  #hud { position: fixed; left: 10px; right: 10px; top: calc(10px + env(safe-area-inset-top)); display: flex; gap: 6px; transition: opacity .6s; max-width: 520px; margin: 0 auto; }
+  #hud .p { flex: 1; background: var(--glass); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-radius: 14px; padding: 8px 10px; box-shadow: 0 4px 16px rgba(40,30,20,.14); }
+  #hud .k { font-size: 9.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+  #hud .v { font-size: 17px; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 2px; white-space: nowrap; }
+  #hud .v small { font-size: 10.5px; font-weight: 500; color: var(--muted); margin-left: 1px; }
+  #leg { position: fixed; left: 50%; transform: translateX(-50%); top: calc(70px + env(safe-area-inset-top)); background: var(--ink); color: #fff; font-size: 12px; font-weight: 600; padding: 7px 12px; border-radius: 999px; white-space: nowrap; transition: opacity .6s; }
+  #close { position: fixed; right: 14px; top: calc(112px + env(safe-area-inset-top)); width: 38px; height: 38px; border-radius: 50%; border: 0; background: var(--glass); box-shadow: 0 4px 14px rgba(40,30,20,.18); font-size: 18px; cursor: pointer; transition: opacity .4s; }
+
+  /* ---------- stop card ---------- */
   #card {
-    position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom));
-    max-width: 460px; margin: 0 auto;
-    background: var(--glass); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
-    border: 1px solid var(--line); border-radius: 18px; overflow: hidden;
-    transform: translateY(18px); opacity: 0; transition: opacity .6s ease, transform .6s ease; pointer-events: none;
+    position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); max-width: 460px; margin: 0 auto;
+    background: var(--paper); border-radius: 22px; overflow: hidden; box-shadow: var(--shadow);
+    transform: translateY(20px); opacity: 0; transition: opacity .5s ease, transform .5s ease; pointer-events: none;
   }
   #card.show { transform: none; opacity: 1; pointer-events: auto; }
-  #card .photo { width: 100%; height: 30vh; max-height: 260px; object-fit: cover; display: block; }
-  #card .body { padding: 18px 20px 20px; }
-  #card h2 { margin: 6px 0 2px; font-size: 26px; font-weight: 700; letter-spacing: -.01em; }
-  #card .ele { font-size: 13px; color: var(--accent-soft); font-variant-numeric: tabular-nums; letter-spacing: .04em; }
-  #card .line { margin: 12px 0 0; font-size: 15.5px; line-height: 1.5; color: #d6d5d0; }
-  #card .bar { height: 2px; background: var(--line); }
+  .carousel { position: relative; height: 31vh; max-height: 270px; background: var(--paper-2); overflow: hidden; }
+  .carousel img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .7s ease; }
+  .carousel img.on { opacity: 1; }
+  .carousel .cap { position: absolute; left: 10px; bottom: 10px; right: 10px; display: flex; justify-content: space-between; align-items: flex-end; gap: 8px; }
+  .carousel .cap span { background: rgba(20,18,16,.62); color: #fff; font-size: 11.5px; padding: 5px 9px; border-radius: 999px; max-width: 75%; }
+  .carousel .credit { position: absolute; right: 8px; top: 8px; background: rgba(20,18,16,.5); color: #fff; font-size: 9.5px; padding: 3px 7px; border-radius: 999px; text-decoration: none; max-width: 60%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dots { display: flex; gap: 4px; }
+  .dots i { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.55); }
+  .dots i.on { background: #fff; }
+  #card .body { padding: 16px 18px 18px; }
+  #card h2 { margin: 6px 0 2px; font-size: 25px; letter-spacing: -.01em; }
+  #card .ele { font-size: 13px; color: var(--accent-deep); font-weight: 600; font-variant-numeric: tabular-nums; }
+  #card .line { margin: 10px 0 0; font-size: 15.5px; line-height: 1.5; color: #35312c; }
+  #card .bar { height: 3px; background: var(--paper-2); }
   #card .bar i { display: block; height: 100%; width: 0; background: var(--accent); }
-  #card .tap { position: absolute; right: 16px; bottom: 14px; font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--faint); }
+  #card .tap { position: absolute; right: 16px; bottom: 12px; font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--faint); }
 
-  /* end */
-  #end {
-    position: fixed; inset: 0; overflow-y: auto; display: flex; flex-direction: column;
-    padding: calc(40px + env(safe-area-inset-top)) 26px calc(40px + env(safe-area-inset-bottom));
-    background: linear-gradient(180deg, rgba(15,17,18,.25) 0%, rgba(15,17,18,.92) 24%, rgba(15,17,18,.97) 60%);
-    transition: opacity 1.4s ease;
-  }
-  #end .inner { max-width: 460px; margin: auto auto 0; width: 100%; }
-  #end img { width: 108px; height: 108px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent); display: block; margin-bottom: 26px; }
-  #end h2 { font-size: 34px; margin: 0 0 18px; letter-spacing: -.01em; }
-  #end p { font-size: 17px; line-height: 1.6; color: #d6d5d0; margin: 0 0 14px; }
-  #end .sig { color: var(--accent-soft); margin-top: 22px; }
-  #end .totals { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin: 30px 0 30px; padding-top: 22px; border-top: 1px solid var(--line); }
-  #end .totals .v { font-size: 22px; font-weight: 650; font-variant-numeric: tabular-nums; }
-  #end .row { display: flex; gap: 12px; flex-wrap: wrap; }
-  #end .small { font-size: 10.5px; color: var(--faint); margin-top: 26px; line-height: 1.6; }
+  /* ---------- helmet cam ---------- */
+  #visor { position: fixed; inset: 0; pointer-events: none; transition: opacity .8s; }
+  #visor .tint { position: absolute; inset: 0; background:
+      radial-gradient(ellipse 78% 60% at 50% 58%, rgba(0,0,0,0) 62%, rgba(14,16,18,.55) 82%, rgba(14,16,18,.96) 100%),
+      linear-gradient(160deg, rgba(120,170,200,.18), rgba(0,0,0,0) 40%); }
+  #visor .peak { position: absolute; left: -10%; right: -10%; top: -2px; height: 11vh; filter: drop-shadow(0 6px 8px rgba(0,0,0,.35)); }
+  #visor .gopro { position: absolute; left: 16px; right: 16px; bottom: calc(46px + env(safe-area-inset-bottom)); display: flex; justify-content: space-between; color: #fff; font: 600 12px/1.3 ui-monospace, "SF Mono", Menlo, monospace; text-shadow: 0 1px 3px rgba(0,0,0,.8); letter-spacing: .04em; }
+  #visor .rec::before { content: ""; display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: #ff3b30; margin-right: 6px; animation: blink 1s steps(2) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
 
-  .rider {
-    width: 16px; height: 16px; border-radius: 50%; background: var(--accent);
-    box-shadow: 0 0 0 4px rgba(224,102,44,.25), 0 0 22px 6px rgba(224,102,44,.55);
-  }
-  .rider::after { content: ""; position: absolute; inset: -10px; border-radius: 50%; border: 1px solid rgba(224,102,44,.6); animation: ping 2s ease-out infinite; }
-  @keyframes ping { from { transform: scale(.4); opacity: 1; } to { transform: scale(1.5); opacity: 0; } }
-
-  body.rec .maplibregl-ctrl-attrib, body.rec #card .tap { display: none; }
-
-  /* title extras */
-  #title .row { display: flex; gap: 10px; flex-wrap: wrap; }
-  #title { justify-content: flex-start; overflow-y: auto; padding-top: calc(24px + env(safe-area-inset-top)); }
-  #title::before { content: ""; margin-top: auto; }  /* bottom-aligned, but scrolls instead of clipping on short phones */
-  button.pill.quiet { border-color: var(--line); }
-  #now { font-size: 12px; color: var(--muted); margin-top: 22px; letter-spacing: .02em; line-height: 1.5; min-height: 18px; transition: opacity .8s; }
-  #now b { font-weight: 600; color: var(--ink); }
-  #otd { display: none; margin: 0 0 22px; padding: 14px 16px; border: 1px solid rgba(224,102,44,.45); border-radius: 14px; background: rgba(224,102,44,.08); }
-  #otd .eyebrow { color: var(--accent-soft); }
-  #otd p { color: var(--ink); margin: 6px 0 0; font-size: 15px; }
-
-  /* explore: scrub the ride */
-  #scrub {
-    position: fixed; left: 0; right: 0; bottom: 0; padding: 12px 16px calc(14px + env(safe-area-inset-bottom));
-    background: linear-gradient(0deg, rgba(15,17,18,.96) 60%, rgba(15,17,18,0)); transition: opacity .6s;
-  }
-  #chips { display: flex; gap: 8px; overflow-x: auto; padding: 4px 0 12px; scrollbar-width: none; }
-  #chips::-webkit-scrollbar { display: none; }
-  #chips button {
-    flex: none; appearance: none; border: 1px solid var(--line); background: rgba(15,17,18,.7); color: var(--ink);
-    font: 500 12px/1 var(--font); padding: 9px 12px; border-radius: 999px; cursor: pointer; white-space: nowrap;
-  }
-  #chips button.on { border-color: var(--accent); color: var(--accent-soft); }
-  .prof { position: relative; height: 64px; touch-action: none; cursor: ew-resize; }
+  /* ---------- explore ---------- */
+  #scrub { padding-top: 12px; }
+  #stopchips { display: flex; gap: 6px; overflow-x: auto; padding: 0 0 10px; scrollbar-width: none; }
+  #stopchips::-webkit-scrollbar { display: none; }
+  #stopchips button { flex: none; border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 9px 12px; font-size: 12.5px; cursor: pointer; white-space: nowrap; }
+  #stopchips button.on { border-color: var(--accent); color: var(--accent-deep); background: var(--accent-tint); }
+  .prof { position: relative; height: 62px; touch-action: none; cursor: ew-resize; }
   .prof svg { position: absolute; inset: 0; width: 100%; height: 100%; }
   .thumb { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--ink); pointer-events: none; }
-  .thumb::after { content: ""; position: absolute; left: -7px; top: -8px; width: 16px; height: 16px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 14px rgba(224,102,44,.8); }
-  .scrub-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
-  .scrub-foot span { font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--faint); }
-  .scrub-foot button { appearance: none; background: none; border: 0; color: var(--accent-soft); font: 600 11px/1 var(--font); letter-spacing: .16em; text-transform: uppercase; padding: 6px 0; cursor: pointer; }
-  body.exploring #card { bottom: calc(170px + env(safe-area-inset-bottom)); }
-  body.exploring #card .photo { height: 22vh; }
+  .thumb::after { content: ""; position: absolute; left: -9px; top: -10px; width: 20px; height: 20px; border-radius: 50%; background: var(--accent); border: 3px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
+  .scrub-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; gap: 8px; }
+  .scrub-foot span { font-size: 11px; color: var(--muted); }
+  body.exploring #card { bottom: calc(176px + env(safe-area-inset-bottom)); }
+  body.exploring #card .carousel { height: 20vh; }
   body.exploring #card .bar { display: none; }
+
+  /* ---------- modals ---------- */
+  .modal { position: fixed; inset: 0; background: rgba(30,24,18,.45); display: flex; align-items: flex-end; justify-content: center; transition: opacity .35s; z-index: 10; }
+  .modal .sheet { position: relative; width: 100%; max-height: 90vh; }
+  .modal h2 { margin: 4px 0 6px; font-size: 24px; letter-spacing: -.01em; }
+  .modal p { color: #3b3732; font-size: 15px; line-height: 1.5; margin: 0 0 12px; }
+  .x { position: absolute; right: 14px; top: 12px; width: 34px; height: 34px; border-radius: 50%; border: 0; background: var(--paper-2); font-size: 16px; cursor: pointer; }
+
+  .helmet { position: relative; width: 100%; aspect-ratio: 420 / 330; margin: 4px 0 6px; }
+  .helmet > img { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .sticker {
+    position: absolute; width: 11.5%; aspect-ratio: 1; margin: -5.75% 0 0 -5.75%; border-radius: 50%;
+    display: grid; place-items: center; text-align: center; cursor: pointer; border: 0; padding: 0;
+    font: 800 7.5px/1 var(--font); color: #fff; letter-spacing: .01em;
+    box-shadow: 0 0 0 2.5px #fff, 0 3px 8px rgba(0,0,0,.28); transition: transform .2s;
+  }
+  .sticker:active, .sticker.sel { transform: scale(1.15) rotate(0deg) !important; }
+  .sticker .e { font-size: 13px; display: block; margin-bottom: 1px; }
+  .sticker.locked { background: rgba(255,255,255,.35) !important; color: var(--faint); box-shadow: none; border: 1.5px dashed rgba(30,28,26,.45); }
+  .sticker.locked .e { filter: grayscale(1); opacity: .5; }
+  .sticker.pop { animation: pop .6s cubic-bezier(.2,1.6,.4,1) both; }
+  @keyframes pop { from { transform: scale(0) rotate(-40deg); } }
+  #stk-info { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 12px 14px; min-height: 66px; }
+  #stk-info b { font-size: 16px; }
+  #stk-info .st { font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+  #stk-info p { margin: 4px 0 0; font-size: 14px; }
+  .meter { height: 8px; border-radius: 8px; background: var(--paper-2); overflow: hidden; margin: 10px 0 4px; }
+  .meter i { display: block; height: 100%; background: var(--accent); border-radius: 8px; }
+
+  .drop { border: 2px dashed rgba(30,28,26,.22); border-radius: 18px; padding: 18px; text-align: center; cursor: pointer; background: #fff; }
+  .drop b { display: block; font-size: 16px; margin-bottom: 4px; }
+  .drop span { font-size: 13px; color: var(--muted); }
+  #gpx-result { margin-top: 12px; }
+
+  /* ---------- end ---------- */
+  #end .inner { text-align: left; }
+  #end .portrait { width: 92px; height: 92px; border-radius: 50%; object-fit: cover; object-position: 50% 28%; border: 3px solid var(--accent); display: block; margin: 6px 0 14px; }
+  #end h2 { font-size: 30px; margin: 0 0 12px; letter-spacing: -.02em; }
+  #end p { font-size: 16.5px; line-height: 1.6; color: #35312c; margin: 0 0 12px; }
+  #end .sig { color: var(--accent-deep); font-weight: 600; }
+  #end .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 16px; }
+  .credits { font-size: 10.5px; color: var(--faint); margin-top: 18px; line-height: 1.6; }
+  .credits a { color: var(--faint); }
+
+  /* rider marker */
+  .rider { width: 46px; height: 58px; position: relative; pointer-events: none; }
+  .rider img { position: absolute; left: 0; top: 0; width: 100%; height: 100%; transition: opacity .25s; }
+  .rider img.top { width: 30px; height: 60px; left: 8px; top: -1px; }
+  .rider .bob { position: absolute; inset: 0; animation: bob .5s ease-in-out infinite alternate; }
+  @keyframes bob { to { transform: translateY(-1.5px); } }
+
+  body.rec .maplibregl-ctrl-attrib, body.rec #close, body.rec #card .tap { display: none; }
 </style>
 </head>
 <body>
 <div id="map"></div>
 
+<!-- ride HUD -->
 <div id="hud" class="hidden">
-  <div><div class="k">Ridden</div><div class="v" id="s-km">0<small>km</small></div></div>
-  <div><div class="k">Climbed</div><div class="v" id="s-up">0<small>m</small></div></div>
-  <div><div class="k">Highest</div><div class="v" id="s-hi">0<small>m</small></div></div>
-  <div><div class="k">Day</div><div class="v" id="s-day">1<small>/8</small></div></div>
+  <div class="p"><div class="k">Ridden</div><div class="v" id="s-km">0<small>km</small></div></div>
+  <div class="p"><div class="k">Climbed</div><div class="v" id="s-up">0<small>m</small></div></div>
+  <div class="p"><div class="k">Highest</div><div class="v" id="s-hi">0<small>m</small></div></div>
+  <div class="p"><div class="k">Day</div><div class="v" id="s-day">1<small>/8</small></div></div>
 </div>
 <div id="leg" class="hidden"></div>
+<button id="close" class="hidden" aria-label="Back to the atlas">✕</button>
 
-<div id="card"><div class="bar"><i></i></div><img class="photo" alt=""><div class="body">
-  <div class="eyebrow" id="c-when"></div><h2 id="c-name"></h2><div class="ele" id="c-ele"></div><p class="line" id="c-line"></p>
-</div><div class="tap">Tap to continue</div></div>
+<!-- helmet cam overlay -->
+<div id="visor" class="hidden">
+  <div class="tint"></div>
+  <svg class="peak" viewBox="0 0 400 60" preserveAspectRatio="none">
+    <defs><clipPath id="pk"><path d="M0 0 H400 V30 C300 62 100 62 0 30 Z"/></clipPath></defs>
+    <path d="M0 0 H400 V30 C300 62 100 62 0 30 Z" fill="#eceeed"/>
+    <linearGradient id="pkg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".18"/></linearGradient>
+    <g clip-path="url(#pk)" opacity=".9">
+      <path d="M30 4 c14 2 24 -2 30 6 s-12 12-26 9 s-18-14-4-15z M150 22 c10-4 22 2 20 9 s-16 6-22 1 s-6-8 2-10z M262 6 c16 0 26 6 22 14 s-22 6-28-1 s-6-13 6-13z M350 26 c8-3 18 1 16 7 s-12 5-16 1z M96 30 c6-2 12 1 11 5 s-9 4-12 0z" fill="#2b3032"/>
+      <path d="M92 6 c12-2 22 4 18 10 s-16 6-22 0 s-4-9 4-10z M206 4 c14 0 22 8 16 14 s-20 4-24-3 s0-11 8-11z M318 10 c8-2 16 2 14 8 s-12 6-16 1 s-4-8 2-9z M40 30 c8-2 14 2 12 7 s-10 4-14 0z M230 34 c8-2 14 2 12 6 s-10 4-13 0z" fill="#8e9598"/>
+    </g>
+    <path d="M0 0 H400 V30 C300 62 100 62 0 30 Z" fill="url(#pkg)"/>
+    <path d="M0 30 C100 62 300 62 400 30" stroke="#1e2122" stroke-width="3" fill="none"/>
+  </svg>
+  <div class="gopro"><span class="rec" id="g-time">REC 00:00</span><span id="g-alt">ALT 0 m</span><span id="g-km">0 km</span></div>
+</div>
 
-<div id="title">
+<!-- stop card -->
+<div id="card"><div class="bar"><i></i></div>
+  <div class="carousel" id="car"></div>
+  <div class="body"><div class="eyebrow" id="c-when"></div><h2 id="c-name"></h2><div class="ele" id="c-ele"></div><p class="line" id="c-line"></p></div>
+  <div class="tap">Tap to continue</div>
+</div>
+
+<!-- home: the atlas -->
+<div id="home" class="sheet">
+  <div class="grab"></div>
   <div id="otd"><div class="eyebrow">On this day</div><p id="otd-text"></p></div>
-  <div class="eyebrow"><span class="accent">&#9679;</span>&nbsp; For Saurabh</div>
-  <h1>Lahaul</h1>
-  <p>Delhi to the high valleys of Lahaul, and home again.</p>
-  <p>24 to 31 May 2026 &middot; Royal Enfield Himalayan 450</p>
-  <div class="rule"></div>
-  <div class="row"><button class="pill" id="go">Ride it again</button><button class="pill quiet" id="t-explore">Explore</button></div>
+  <div class="who">
+    <img class="avatar" src="photos/saurabh.jpg" alt="Saurabh">
+    <div><div class="eyebrow">Saurabh's Ride Atlas</div><h1>Every road you ride, in 3D</h1></div>
+  </div>
+  <div class="chips" id="traits"></div>
+  <p class="what">This is your atlas: a home for every road you ride. Each ride becomes a chapter you can fly through, explore, and show off. Every ride also earns stickers for your helmet. <b>Chapter one is Lahaul.</b></p>
+
+  <div class="chapter">
+    <div class="eyebrow">Chapter 1 · 24 to 31 May 2026</div>
+    <h2>Delhi to Lahaul</h2>
+    <div class="sub">Over the Atal Tunnel, a week at Sissu, up to Baralacha La</div>
+    <div class="nums">
+      <div><b id="n-km">1,446</b><span>km</span></div>
+      <div><b id="n-hi">4,907 m</b><span>highest</span></div>
+      <div><b>8</b><span>days</span></div>
+    </div>
+    <div class="acts">
+      <button class="btn primary wide" id="go">▶&nbsp; Ride Chapter 1</button>
+      <button class="btn dark" id="helmet-cam">🪖 Helmet cam</button>
+      <button class="btn ghost" id="t-explore">🗺️ Explore</button>
+    </div>
+  </div>
+  <div class="chapter next">
+    <div><div class="eyebrow" style="color:var(--faint)">Chapter 2</div><h3>Your next road</h3><div class="sub" style="font-size:13px;color:var(--muted)">Ladakh? Spiti? It goes here.</div></div>
+    <button class="btn ghost small" id="add-ride">＋ Add a ride</button>
+  </div>
+
+  <div class="tiles">
+    <button class="tile" id="open-stickers"><img src="art/helmet.svg" alt=""><span class="t">Helmet stickers</span><span class="s" id="stk-count"></span></button>
+    <button class="tile" id="song"><span style="font-size:34px;line-height:74px;text-align:center">🎸</span><span class="t">Our song</span><span class="s">Alfaaz, instrumental ↗</span></button>
+  </div>
+  <div class="tiles" style="grid-template-columns:1fr">
+    <button class="btn ghost" id="share">↗&nbsp; Show it off</button>
+  </div>
   <div id="now"></div>
 </div>
 
-<div id="scrub" class="hidden">
-  <div id="chips"></div>
-  <div class="prof" id="prof"><svg viewBox="0 0 1000 100" preserveAspectRatio="none"><defs><linearGradient id="pg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e0662c" stop-opacity=".35"/><stop offset="1" stop-color="#e0662c" stop-opacity="0"/></linearGradient></defs><path id="prof-area" fill="url(#pg)"/><path id="prof-line" fill="none" stroke="#e0662c" stroke-width="1.6" vector-effect="non-scaling-stroke"/></svg><div class="thumb" id="thumb"></div></div>
-  <div class="scrub-foot"><span>Drag along the ride</span><button id="s-replay">Replay the ride</button></div>
+<!-- explore -->
+<div id="scrub" class="sheet hidden">
+  <div id="stopchips"></div>
+  <div class="prof" id="prof"><svg viewBox="0 0 1000 100" preserveAspectRatio="none"><defs><linearGradient id="pg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e0662c" stop-opacity=".35"/><stop offset="1" stop-color="#e0662c" stop-opacity="0"/></linearGradient></defs><path id="prof-area" fill="url(#pg)"/><path id="prof-line" fill="none" stroke="#e0662c" stroke-width="2" vector-effect="non-scaling-stroke"/></svg><div class="thumb" id="thumb"></div></div>
+  <div class="scrub-foot"><span>Drag along the ride · tap a stop</span><button class="btn ghost small" id="x-home">Back to atlas</button></div>
 </div>
 
-<div id="end" class="hidden"><div class="inner">
-  <img id="e-photo" alt="">
-  <div class="eyebrow" style="margin-bottom:12px">28 October</div>
+<!-- helmet stickers -->
+<div id="stickers" class="modal hidden"><div class="sheet">
+  <div class="grab"></div><button class="x" data-close>✕</button>
+  <div class="eyebrow">Helmet stickers</div>
+  <h2 id="stk-title"></h2>
+  <p>Every ride earns stickers for your lid. Tap one to see what it's for. The dashed ones are still out there.</p>
+  <div class="helmet" id="helmet"><img src="art/helmet.svg" alt="Saurabh's camo helmet"></div>
+  <div id="stk-info"><span style="color:var(--muted);font-size:14px">Tap a sticker</span></div>
+  <div style="margin-top:12px;font-size:13px;color:var(--muted)">Lifetime odometer</div>
+  <div class="meter"><i id="odo-bar"></i></div>
+  <div style="font-size:12.5px;color:var(--muted)" id="odo-text"></div>
+</div></div>
+
+<!-- add a ride -->
+<div id="addride" class="modal hidden"><div class="sheet">
+  <div class="grab"></div><button class="x" data-close>✕</button>
+  <div class="eyebrow">Add a ride</div>
+  <h2>Ride somewhere new?</h2>
+  <p>Drop in a GPX file from any riding or GPS app (Strava, Relive, Google Maps, your phone's tracker) and see it here right away, with the stickers it would earn.</p>
+  <label class="drop" style="display:block"><input type="file" id="gpx" accept=".gpx,application/gpx+xml" hidden><b>Choose a GPX file</b><span>It stays on your phone; nothing is uploaded.</span></label>
+  <div id="gpx-result"></div>
+  <p style="font-size:13px;color:var(--muted);margin-top:12px">To keep a ride in your atlas for good, send the GPX to Lavanya and it becomes the next chapter.</p>
+</div></div>
+
+<!-- end -->
+<div id="end" class="sheet hidden"><div class="inner">
+  <div class="grab"></div>
+  <img class="portrait" src="photos/saurabh.jpg" alt="">
+  <div class="eyebrow" style="margin-bottom:8px">28 October</div>
   <h2 id="e-head"></h2>
   <div id="e-note"></div>
-  <div class="totals">
-    <div><div class="eyebrow">Ridden</div><div class="v" id="e-km"></div></div>
-    <div><div class="eyebrow">Climbed</div><div class="v" id="e-up"></div></div>
-    <div><div class="eyebrow">Highest</div><div class="v" id="e-hi"></div></div>
-    <div><div class="eyebrow">On the road</div><div class="v">8 days</div></div>
-  </div>
-  <div class="row"><button class="pill" id="replay">Replay the ride</button><button class="pill" id="explore" style="border-color:var(--line)">Explore</button></div>
-  <div class="small">DL 10AH 2818<br>Route &copy; OpenStreetMap contributors &middot; Terrain: Copernicus DEM GLO-30 &copy; ESA, AWS Terrain Tiles</div>
+  <div class="row"><button class="btn primary" id="e-home">Back to the atlas</button><button class="btn ghost" id="replay">Replay</button></div>
+  <div class="credits" id="credits"></div>
 </div></div>
 
 <script src="vendor/maplibre-gl.js"></script>
 <script src="vendor/pmtiles.js"></script>
 <script>
-/* ---------- words & photos (edit here) ----------
-   Drop more photos into photos/ and point a stop at them below.
-   Lines come from data/stats.json; a "line" here overrides it. */
+/* ================= words, photos, stickers (edit here) ================= */
 const CONTENT = {
+  traits: ["☕ Coffee first", "🎸 Guitar & voice notes", "🦉 Night owl", "🧡 Sweet to everyone he meets"],
+  song: "https://www.youtube.com/results?search_query=alfaaz+instrumental",
   stops: {
-    delhi:       { when: "Day 1 · 24 May" },
-    sundernagar: { when: "Day 1 · 24 May" },
-    sissu:       { when: "Day 2 · 25 May", photo: "photos/himalayan.jpg" },
-    shashur:     { when: "From Sissu" },
-    keylong:     { when: "From Sissu" },
-    jispa:       { when: "From Sissu" },
-    baralacha:   { when: "From Sissu", photo: "photos/riding.jpg" },
-    koksar:      { when: "From Sissu" },
-    delhi_end:   { when: "Day 8 · 31 May" },
+    delhi:       { when: "Day 1 · 24 May", photos: [["photos/places/delhi.jpg", "India Gate, before the long road north", "delhi"]] },
+    sundernagar: { when: "Day 1 · 24 May", photos: [["photos/places/sundernagar.jpg", "Sundernagar lake, end of day one", "sundernagar"]] },
+    sissu:       { when: "Day 2 · 25 May", photos: [["photos/himalayan.jpg", "The Himalayan, parked at base"], ["photos/places/atal.jpg", "Out of the Atal Tunnel into Lahaul", "atal"], ["photos/places/siddu.jpg", "Siddu, Himachal's steamed bread", "siddu"]] },
+    shashur:     { when: "From Sissu", photos: [["photos/places/shashur.jpg", "Shashur Gompa, above Keylong", "shashur"]] },
+    keylong:     { when: "From Sissu", photos: [["photos/places/keylong.jpg", "Keylong and the Bhaga valley", "keylong"]] },
+    jispa:       { when: "From Sissu", photos: [["photos/places/jispa.jpg", "The Bhaga river at Jispa", "jispa"]] },
+    baralacha:   { when: "From Sissu", photos: [["photos/riding.jpg", "Saurabh on the high road"], ["photos/places/baralacha.jpg", "The BRO sign at the top", "baralacha"]] },
+    koksar:      { when: "From Sissu", photos: [["photos/places/koksar.jpg", "The Chandra valley near Koksar", "koksar"]] },
+    delhi_end:   { when: "Day 8 · 31 May", photos: [["photos/places/delhi.jpg", "Home again", "delhi"]] },
   },
   closing: {
-    photo: "photos/saurabh.jpg",
     head: "Happy birthday, Saurabh.",
     paras: [
       "You came back from this trip talking about it like it was a place you'd left a part of yourself. So I tried to bring some of it back for you.",
@@ -214,46 +342,54 @@ const CONTENT = {
   },
 };
 
-const REC = new URLSearchParams(location.search).has("rec");   // video capture mode
+// Stickers: "when" checks the rides in the atlas; awarded ones are gifts.
+const STICKERS = [
+  { id: "pass",    e: "⛰️", t: "4,907",     bg: "#e0662c", x: 32, y: 30, name: "High Pass",        how: "Ride over a pass above 4,500 m.",         when: (a) => a.maxEle >= 4500, got: "Baralacha La, 4,907 m." },
+  { id: "tunnel",  e: "🚇", t: "ATAL",      bg: "#2e5e7e", x: 45, y: 25, name: "Through the Mountain", how: "Ride the Atal Tunnel, 9.02 km under Rohtang.", when: (a) => a.atal, got: "Through and back, May 2026." },
+  { id: "k1",      e: "🏁", t: "1K",        bg: "#1e1c1a", x: 58, y: 29, name: "1,000 km Club",    how: "One trip over 1,000 km.",                 when: (a) => a.maxTripKm >= 1000, got: "1,446 km to Lahaul and back." },
+  { id: "climb",   e: "📈", t: "10K",       bg: "#4f7d4a", x: 24, y: 45, name: "Cloud Climber",    how: "Climb 10,000 m in a single trip.",        when: (a) => a.maxClimb >= 10000, got: "13,600 m of climbing." },
+  { id: "local",   e: "🏡", t: "SISSU",     bg: "#8a5a3b", x: 37, y: 43, name: "Lahaul Local",     how: "Spend a week based in one valley.",       when: (a) => a.basedWeek, got: "A week at Sissu." },
+  { id: "gompa",   e: "🙏", t: "GOMPA",     bg: "#b8892a", x: 50, y: 40, name: "Monastery Morning", how: "Ride up to a mountain monastery.",       when: (a) => a.gompa, got: "Shashur Gompa, 3,458 m." },
+  { id: "owl",     e: "🦉", t: "OWL",       bg: "#3c3a63", x: 27, y: 60, name: "Night Owl",        how: "Awarded by Lavanya.",                     when: () => true, got: "For every late-night song you've sent me." },
+  { id: "k2",      e: "🛣️", t: "2K",        bg: "#1e1c1a", x: 40, y: 57, name: "2,000 km Club",    how: "One trip over 2,000 km.",                 when: (a) => a.maxTripKm >= 2000 },
+  { id: "khardung", e: "🏔️", t: "5,359",    bg: "#e0662c", x: 53, y: 55, name: "Top of the World", how: "Ride above 5,300 m (hello, Khardung La).", when: (a) => a.maxEle >= 5300 },
+  { id: "spiti",   e: "🌀", t: "SPITI",     bg: "#2e5e7e", x: 33, y: 73, name: "Spiti Circuit",    how: "Ride through Kaza.",                      when: (a) => a.kaza },
+  { id: "life5",   e: "🧭", t: "5K",        bg: "#4f7d4a", x: 46, y: 72, name: "Lifetime 5,000",   how: "5,000 km across your whole atlas.",      when: (a) => a.lifeKm >= 5000 },
+  { id: "pillion", e: "💞", t: "PILLION",   bg: "#c2456b", x: 59, y: 70, name: "Pillion Pact",     how: "A ride with Lavanya on the back.",        when: (a) => a.pillion },
+];
+
+const Q = new URLSearchParams(location.search);
+const REC = Q.has("rec");   // video capture mode
 if (REC) document.body.classList.add("rec");
 const STOP_MS = REC ? 3000 : 6500;
-
 const $ = (id) => document.getElementById(id);
 const fmt = (n) => Math.round(n).toLocaleString("en-IN");
 
 (async function main() {
-  const [track, stats] = await Promise.all([
+  const [track, stats, credits] = await Promise.all([
     fetch("data/track.json").then((r) => r.json()),
     fetch("data/stats.json").then((r) => r.json()),
+    fetch("data/credits.json").then((r) => r.json()).catch(() => ({})),
   ]);
 
-  // ---- precompute along-track arrays ----
-  const N = track.length;
-  const KM = track.map((t) => t[3]);
+  // ---------- along-track arrays ----------
+  const N = track.length, KM = track.map((t) => t[3]);
   const cumUp = new Float64Array(N), cumHi = new Float64Array(N), frac = new Float64Array(N);
   let merc = 0;
   for (let i = 1; i < N; i++) {
     cumUp[i] = cumUp[i - 1] + Math.max(0, track[i][2] - track[i - 1][2]);
     const a = maplibregl.MercatorCoordinate.fromLngLat([track[i - 1][0], track[i - 1][1]]);
     const b = maplibregl.MercatorCoordinate.fromLngLat([track[i][0], track[i][1]]);
-    merc += Math.hypot(b.x - a.x, b.y - a.y);
-    frac[i] = merc;
+    merc += Math.hypot(b.x - a.x, b.y - a.y); frac[i] = merc;
   }
   const upScale = stats.climb_m / cumUp[N - 1];
   for (let i = 0; i < N; i++) { cumUp[i] *= upScale; frac[i] /= merc; cumHi[i] = Math.max(i ? cumHi[i - 1] : 0, track[i][2]); }
   const TOTAL = KM[N - 1];
-
-  function idxAt(km) {
-    let lo = 0, hi = N - 1;
-    while (hi - lo > 1) { const m = (lo + hi) >> 1; if (KM[m] <= km) lo = m; else hi = m; }
-    return lo;
-  }
+  const idxAt = (km) => { let lo = 0, hi = N - 1; while (hi - lo > 1) { const m = (lo + hi) >> 1; if (KM[m] <= km) lo = m; else hi = m; } return lo; };
   function at(km) {
     km = Math.max(0, Math.min(TOTAL, km));
-    const i = idxAt(km), j = Math.min(N - 1, i + 1);
-    const f = KM[j] > KM[i] ? (km - KM[i]) / (KM[j] - KM[i]) : 0;
-    const L = (a, b) => a + (b - a) * f;
-    return { lng: L(track[i][0], track[j][0]), lat: L(track[i][1], track[j][1]), up: L(cumUp[i], cumUp[j]), hi: Math.max(cumHi[i], f > 0 ? Math.min(track[j][2], cumHi[j]) : 0), frac: L(frac[i], frac[j]) };
+    const i = idxAt(km), j = Math.min(N - 1, i + 1), f = KM[j] > KM[i] ? (km - KM[i]) / (KM[j] - KM[i]) : 0, L = (a, b) => a + (b - a) * f;
+    return { lng: L(track[i][0], track[j][0]), lat: L(track[i][1], track[j][1]), ele: L(track[i][2], track[j][2]), up: L(cumUp[i], cumUp[j]), hi: Math.max(cumHi[i], f > 0 ? Math.min(track[j][2], cumHi[j]) : 0), frac: L(frac[i], frac[j]) };
   }
   function bearing(a, b) {
     const r = Math.PI / 180, y = Math.sin((b.lng - a.lng) * r) * Math.cos(b.lat * r);
@@ -262,23 +398,19 @@ const fmt = (n) => Math.round(n).toLocaleString("en-IN");
   }
   function dayAt(km) {
     const leg = stats.legs.filter((l, i) => i === 0 || km > l.start_km + 0.5).pop();  // arriving at a stop belongs to the leg that got you there
-    return { out1: [1, "Day 1 · Delhi to Sundernagar"], out2: [2, "Day 2 · Over the Atal Tunnel"], ride1: [3, "Days in Lahaul · Shashur Gompa"],
-             ride2: [5, "Days in Lahaul · The high road"], ride3: [7, "Days in Lahaul · Koksar"], home: [8, "Day 8 · The long road home"] }[leg.id];
+    return { out1: [1, "Day 1 · Delhi to Sundernagar"], out2: [2, "Day 2 · Over the Atal Tunnel"], ride1: [3, "Lahaul · Up to Shashur Gompa"],
+             ride2: [5, "Lahaul · The high road"], ride3: [7, "Lahaul · Out to Koksar"], home: [8, "Day 8 · The long road home"] }[leg.id];
   }
 
-  // ---- map ----
+  // ---------- map ----------
   const proto = new pmtiles.Protocol();
   maplibregl.addProtocol("pmtiles", proto.tile);
   const tiles = (f) => "pmtiles://" + new URL("tiles/" + f, location.href).href;
-  const dpr = Math.min(window.devicePixelRatio || 1, 2);
-
   const map = new maplibregl.Map({
     container: "map",
-    pixelRatio: dpr,
-    attributionControl: { compact: true },
-    interactive: false,
-    maxPitch: 78,
-    fadeDuration: 0,
+    pixelRatio: Math.min(window.devicePixelRatio || 1, 2),
+    attributionControl: { compact: true, customAttribution: "Route © OpenStreetMap contributors · Copernicus DEM © ESA" },
+    interactive: false, maxPitch: 80, fadeDuration: 0,
     style: {
       version: 8,
       sources: {
@@ -287,106 +419,151 @@ const fmt = (n) => Math.round(n).toLocaleString("en-IN");
         dem: { type: "raster-dem", url: tiles("dem.pmtiles"), tileSize: 256, encoding: "terrarium" },
         route: { type: "geojson", lineMetrics: true, data: { type: "Feature", geometry: { type: "LineString", coordinates: track.map((t) => [t[0], t[1]]) } } },
         stops: { type: "geojson", data: { type: "FeatureCollection", features: stats.waypoints.filter((w) => w.id !== "delhi_end").map((w) => ({ type: "Feature", properties: { id: w.id, name: w.name }, geometry: { type: "Point", coordinates: [w.lon, w.lat] } })) } },
+        gpx: { type: "geojson", data: { type: "FeatureCollection", features: [] } },
       },
       layers: [
-        { id: "bg", type: "background", paint: { "background-color": "#0f1112" } },
+        { id: "bg", type: "background", paint: { "background-color": "#e7decf" } },
         { id: "lo", type: "raster", source: "lo", paint: { "raster-fade-duration": 0 } },
         { id: "hi", type: "raster", source: "hi", paint: { "raster-fade-duration": 0 } },
-        { id: "route-all", type: "line", source: "route", layout: { "line-join": "round", "line-cap": "round" }, paint: { "line-color": "#e0662c", "line-opacity": 0.28, "line-width": 1.6 } },
-        { id: "route-glow", type: "line", source: "route", layout: { "line-join": "round", "line-cap": "round" }, paint: { "line-width": 12, "line-blur": 9, "line-opacity": 0.75, "line-gradient": ["step", ["line-progress"], "#e0662c", 0, "rgba(0,0,0,0)"] } },
-        { id: "route-core", type: "line", source: "route", layout: { "line-join": "round", "line-cap": "round" }, paint: { "line-width": 3, "line-gradient": ["step", ["line-progress"], "#ffb27c", 0, "rgba(0,0,0,0)"] } },
-        { id: "stops", type: "circle", source: "stops", paint: { "circle-radius": 3.5, "circle-color": "#0f1112", "circle-stroke-color": "#ecebe7", "circle-stroke-width": 1.4, "circle-pitch-alignment": "map" } },
-        { id: "stops-hit", type: "circle", source: "stops", paint: { "circle-radius": 20, "circle-opacity": 0 } },
+        { id: "route-all", type: "line", source: "route", layout: { "line-join": "round", "line-cap": "round" }, paint: { "line-color": "#e0662c", "line-opacity": 0.45, "line-width": 2, "line-dasharray": [2, 1.5] } },
+        { id: "route-case", type: "line", source: "route", layout: { "line-join": "round", "line-cap": "round" }, paint: { "line-width": 8, "line-gradient": ["step", ["line-progress"], "rgba(255,255,255,.95)", 0, "rgba(0,0,0,0)"] } },
+        { id: "route-core", type: "line", source: "route", layout: { "line-join": "round", "line-cap": "round" }, paint: { "line-width": 4, "line-gradient": ["step", ["line-progress"], "#e0662c", 0, "rgba(0,0,0,0)"] } },
+        { id: "gpx-case", type: "line", source: "gpx", layout: { "line-join": "round", "line-cap": "round" }, paint: { "line-color": "#fff", "line-width": 8 } },
+        { id: "gpx-line", type: "line", source: "gpx", layout: { "line-join": "round", "line-cap": "round" }, paint: { "line-color": "#2e5e7e", "line-width": 4 } },
+        { id: "stops", type: "circle", source: "stops", paint: { "circle-radius": 5, "circle-color": "#fff", "circle-stroke-color": "#1e1c1a", "circle-stroke-width": 2, "circle-pitch-alignment": "map" } },
+        { id: "stops-hit", type: "circle", source: "stops", paint: { "circle-radius": 22, "circle-opacity": 0 } },
       ],
       terrain: { source: "dem", exaggeration: 1.35 },
-      sky: { "sky-color": "#0f1112", "horizon-color": "#2b2622", "fog-color": "#141617", "sky-horizon-blend": 0.7, "horizon-fog-blend": 0.6, "fog-ground-blend": 0.5, "atmosphere-blend": 0 },
+      sky: { "sky-color": "#86b3db", "horizon-color": "#f7d9b9", "fog-color": "#efe2d0", "sky-horizon-blend": 0.6, "horizon-fog-blend": 0.55, "fog-ground-blend": 0.65, "atmosphere-blend": 0.4 },
     },
-    bounds: [[76.6, 28.4], [77.8, 32.95]],
-    fitBoundsOptions: { padding: { top: 70, bottom: Math.round(innerHeight * 0.42), left: 30, right: 30 } },
-    pitch: 0,
+    center: [77.13, 32.47], zoom: 10, pitch: 62, bearing: 30,
   });
   window.__map = map;
+  const mapReady = new Promise((r) => map.once("load", r));
+  const setGestures = (on) => ["dragPan", "touchZoomRotate", "dragRotate", "scrollZoom", "touchPitch"].forEach((h) => map[h][on ? "enable" : "disable"]());
 
-  const riderEl = document.createElement("div"); riderEl.className = "rider";
-  const rider = new maplibregl.Marker({ element: riderEl }).setLngLat([track[0][0], track[0][1]]);
+  // ---------- the rider: him, from behind (chase cam) or from above (anything else) ----------
+  const riderEl = document.createElement("div");
+  riderEl.className = "rider";
+  riderEl.innerHTML = '<div class="bob"><img class="rear" src="art/rider-rear.svg" alt=""><img class="top" src="art/rider-top.svg" alt="" style="opacity:0"></div>';
+  const rider = new maplibregl.Marker({ element: riderEl, anchor: "bottom", pitchAlignment: "viewport", rotationAlignment: "viewport" }).setLngLat([track[0][0], track[0][1]]);
+  const rearImg = riderEl.querySelector(".rear"), topImg = riderEl.querySelector(".top");
+  function placeRider(p, heading) {
+    rider.setLngLat([p.lng, p.lat]);
+    const rel = ((heading - map.getBearing() + 540) % 360) - 180;
+    const behind = Math.abs(rel) < 40 && map.getPitch() > 35;
+    rearImg.style.opacity = behind ? 1 : 0;
+    topImg.style.opacity = behind ? 0 : 1;
+    topImg.style.transform = `rotate(${rel}deg)`;
+    rearImg.style.transform = `skewX(${-rel * 0.25}deg)`;
+  }
+  const headingAt = (km) => bearing(at(km - 0.4), at(km + 0.4));
 
   function setProgress(f) {
     const s = Math.max(1e-6, Math.min(1, f));
-    map.setPaintProperty("route-glow", "line-gradient", ["step", ["line-progress"], "#e0662c", s, "rgba(0,0,0,0)"]);
-    map.setPaintProperty("route-core", "line-gradient", ["step", ["line-progress"], "#ffb27c", s, "rgba(0,0,0,0)"]);
+    map.setPaintProperty("route-case", "line-gradient", ["step", ["line-progress"], "rgba(255,255,255,.95)", s, "rgba(0,0,0,0)"]);
+    map.setPaintProperty("route-core", "line-gradient", ["step", ["line-progress"], "#e0662c", s, "rgba(0,0,0,0)"]);
   }
 
-  // ---- timeline: fly between consecutive stops ----
+  // ---------- timeline ----------
   const stops = stats.waypoints.map((w) => ({ ...w, ...CONTENT.stops[w.id] }));
+  const ix = (id) => stops.findIndex((s) => s.id === id);
   const segs = [];
   for (let i = 0; i < stops.length - 1; i++) {
-    const a = stops[i].km, b = stops[i + 1].km, d = b - a;
-    const mountains = a > 450;
-    segs.push({
-      a, b, d,
-      ms: (REC ? 0.74 : 1) * 1000 * Math.min(10.5, 3.2 + Math.sqrt(d) * 0.34),
-      zoom: mountains ? 10.75 : 9.6,
-      pull: Math.max(0, Math.min(3.3, Math.log2(d / 25))),
-      pitch: mountains ? 57 : 50,
-    });
+    const a = stops[i].km, b = stops[i + 1].km, d = b - a, mountains = a > 450;
+    segs.push({ a, b, d, ms: (REC ? 0.74 : 1) * 1000 * Math.min(10.5, 3.2 + Math.sqrt(d) * 0.34),
+                zoom: mountains ? 10.9 : 9.6, pull: Math.max(0, Math.min(3.3, Math.log2(d / 25))), pitch: mountains ? 58 : 50 });
   }
   const ease = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 
-  let cam = { bearing: 0, zoom: 9, pitch: 50 };
-  let raf = null, running = false, km = 0;
-  const pad = () => ({ top: 0, bottom: Math.round(innerHeight * 0.22), left: 0, right: 0 });
+  let started = false, cam = { bearing: 0, zoom: 9, pitch: 50 }, raf = null, running = false, km = 0, mode = "chase", playId = 0, rideClock = 0;
+  const pad = () => ({ top: 0, bottom: Math.round(innerHeight * (mode === "helmet" ? 0 : 0.22)), left: 0, right: 0 });
 
-  function updateHud(km) {
-    const p = at(km);
-    $("s-km").innerHTML = fmt(km) + "<small>km</small>";
+  function updateHud(k) {
+    const p = at(k);
+    $("s-km").innerHTML = fmt(k) + "<small>km</small>";
     $("s-up").innerHTML = fmt(p.up) + "<small>m</small>";
     $("s-hi").innerHTML = fmt(p.hi) + "<small>m</small>";
-    const [d, label] = dayAt(km);
+    const [d, label] = dayAt(k);
     $("s-day").innerHTML = (d >= 3 && d <= 7 ? "3–7" : d) + "<small>/8</small>";
     $("leg").textContent = label;
+    if (mode === "helmet") {
+      $("g-alt").textContent = "ALT " + fmt(p.ele) + " m";
+      $("g-km").textContent = fmt(k) + " km";
+      const s = Math.floor(rideClock / 1000);
+      $("g-time").textContent = `REC ${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+    }
     return p;
   }
 
-  function frame(km, dt, look, z, pitch, orbit) {
-    const p = updateHud(km);
-    const ahead = at(km + look), behind = at(km - look * 0.6);
-    let target = bearing(behind, ahead);
+  function frame(k, dt, look, z, pitch, orbit) {
+    rideClock += dt * 1000;
+    const p = updateHud(k);
+    let target = bearing(at(k - look * 0.6), at(k + look));
     if (orbit) target = cam.bearing + orbit;
-    let diff = ((target - cam.bearing + 540) % 360) - 180;
-    cam.bearing += diff * Math.min(1, dt * (orbit ? 1 : 1.6));
+    const diff = ((target - cam.bearing + 540) % 360) - 180;
+    cam.bearing += diff * Math.min(1, dt * (orbit ? 1 : mode === "helmet" ? 2.6 : 1.6));
     cam.zoom += (z - cam.zoom) * Math.min(1, dt * 2.2);
     cam.pitch += (pitch - cam.pitch) * Math.min(1, dt * 1.5);
-    rider.setLngLat([p.lng, p.lat]);
     setProgress(p.frac);
-    map.jumpTo({ center: [p.lng, p.lat], bearing: cam.bearing, zoom: cam.zoom, pitch: cam.pitch, padding: pad() });
+    if (mode === "helmet") {
+      const c = at(k + 0.6);    // look just ahead, as if through his visor
+      map.jumpTo({ center: [c.lng, c.lat], bearing: cam.bearing, zoom: cam.zoom, pitch: cam.pitch, padding: pad() });
+    } else {
+      map.jumpTo({ center: [p.lng, p.lat], bearing: cam.bearing, zoom: cam.zoom, pitch: cam.pitch, padding: pad() });
+      placeRider(p, headingAt(k));
+    }
   }
 
-  function runSeg(seg) {
+  function runSeg(seg, slow) {
     return new Promise((done) => {
       let t0 = null, last = performance.now();
-      const look = Math.max(2.5, Math.min(40, seg.d * 0.05));
+      const look = mode === "helmet" ? 3 : Math.max(2.5, Math.min(40, seg.d * 0.05));
+      const ms = seg.ms * (slow || 1);
       const step = (now) => {
         if (!running) return;
         if (t0 === null) t0 = now;
-        const t = Math.min(1, (now - t0) / seg.ms), dt = (now - last) / 1000; last = now;
-        km = seg.a + (seg.b - seg.a) * ease(t);
-        const z = seg.zoom - seg.pull * Math.sin(Math.PI * t);
-        frame(km, dt, look * Math.pow(2, seg.pull * Math.sin(Math.PI * t) * 0.5), z, seg.pitch - 10 * Math.sin(Math.PI * t) * Math.min(1, seg.pull / 2), 0);
+        const t = Math.min(1, (now - t0) / ms), dt = (now - last) / 1000; last = now;
+        km = seg.a + (seg.b - seg.a) * (mode === "helmet" ? t : ease(t));
+        if (mode === "helmet") frame(km, dt, look, 12.9, 71, 0);
+        else {
+          const s = Math.sin(Math.PI * t);
+          frame(km, dt, look * Math.pow(2, seg.pull * s * 0.5), seg.zoom - seg.pull * s, seg.pitch - 10 * s * Math.min(1, seg.pull / 2), 0);
+        }
         if (t < 1) raf = requestAnimationFrame(step); else done();
       };
       raf = requestAnimationFrame(step);
     });
   }
 
+  // ---------- stop cards with photo carousel ----------
+  let carTimer = null;
   function fillCard(s) {
     $("c-when").textContent = s.when || "";
     $("c-name").textContent = s.name;
     $("c-ele").textContent = fmt(s.ele) + " m above sea level";
     $("c-line").textContent = s.line;
-    const img = document.querySelector("#card .photo");
-    if (s.photo) { img.src = s.photo; img.style.display = "block"; } else { img.removeAttribute("src"); img.style.display = "none"; }
+    const car = $("car"); clearInterval(carTimer);
+    const ph = s.photos || [];
+    car.style.display = ph.length ? "block" : "none";
+    car.innerHTML = ph.map(([src, cap, cr], i) => {
+      const c = cr && credits[cr];
+      return `<img src="${src}" alt="" class="${i ? "" : "on"}">` +
+        (c ? `<a class="credit" data-i="${i}" style="${i ? "display:none" : ""}" href="${c.page}" target="_blank" rel="noopener">Photo: ${c.author} · ${c.license}</a>` : "");
+    }).join("") + `<div class="cap"><span id="cap-t">${ph[0] ? ph[0][1] : ""}</span><div class="dots">${ph.length > 1 ? ph.map((_, i) => `<i class="${i ? "" : "on"}"></i>`).join("") : ""}</div></div>`;
+    if (ph.length > 1) {
+      let i = 0;
+      const show = (n) => {
+        i = (n + ph.length) % ph.length;
+        car.querySelectorAll("img").forEach((im, k) => im.classList.toggle("on", k === i));
+        car.querySelectorAll(".dots i").forEach((d, k) => d.classList.toggle("on", k === i));
+        car.querySelectorAll(".credit").forEach((a) => a.style.display = +a.dataset.i === i ? "" : "none");
+        $("cap-t").textContent = ph[i][1];
+      };
+      carTimer = setInterval(() => show(i + 1), REC ? 1500 : 2600);
+      car.onclick = (e) => { if (e.target.closest("a")) return; e.stopPropagation(); show(i + 1); };
+    } else car.onclick = null;
   }
-
   function showStop(s, zoom, pitch) {
     return new Promise((done) => {
       fillCard(s);
@@ -394,177 +571,297 @@ const fmt = (n) => Math.round(n).toLocaleString("en-IN");
       $("card").classList.add("show");
       const bar = document.querySelector("#card .bar i");
       let t0 = null, last = performance.now(), finished = false;
-      const finish = () => { if (finished) return; finished = true; $("card").classList.remove("show"); $("card").onclick = null; setTimeout(done, REC ? 350 : 450); };
+      const finish = () => { if (finished) return; finished = true; $("card").classList.remove("show"); $("card").onclick = null; clearInterval(carTimer); setTimeout(done, REC ? 350 : 450); };
       $("card").onclick = finish;
+      const len = (s.photos || []).length > 1 && !REC ? STOP_MS * 1.3 : STOP_MS;
       const step = (now) => {
         if (!running || finished) return;
         if (t0 === null) t0 = now;
-        const t = (now - t0) / STOP_MS, dt = (now - last) / 1000; last = now;
+        const t = (now - t0) / len, dt = (now - last) / 1000; last = now;
         bar.style.width = Math.min(100, t * 100) + "%";
-        frame(km, dt, 3, zoom, pitch, 4 * dt);
+        if (mode === "helmet") frame(km, dt, 3, 12.9, 71, 0);
+        else frame(km, dt, 3, zoom, pitch, 4 * dt);
         if (t < 1) raf = requestAnimationFrame(step); else finish();
       };
       raf = requestAnimationFrame(step);
     });
   }
 
-  function setGestures(on) {
-    ["dragPan", "touchZoomRotate", "dragRotate", "scrollZoom", "touchPitch"].forEach((h) => map[h][on ? "enable" : "disable"]());
-  }
-
-  // play the whole ride, or just stops i0..i1 (used by "on this day")
-  async function play(i0 = 0, i1 = stops.length - 1) {
-    const run = ++playId;
-    running = true; km = stops[i0].km;
-    cancelAnimationFrame(raf);
+  // ---------- views ----------
+  function hideAll() {
+    ["home", "scrub", "end", "hud", "leg", "close", "visor"].forEach((id) => $(id).classList.add("hidden"));
+    $("card").classList.remove("show"); clearInterval(carTimer);
     document.body.classList.remove("exploring");
-    $("card").classList.remove("show");
-    ["end", "title", "scrub"].forEach((id) => $(id).classList.add("hidden"));
-    $("hud").classList.remove("hidden"); $("leg").classList.remove("hidden");
+  }
+  function stopAll() { running = false; playId++; cancelAnimationFrame(raf); orbiting = false; }
+
+  async function play(i0 = 0, i1 = stops.length - 1, m = "chase") {
+    started = true; stopAll(); hideAll();
+    await mapReady;
+    const run = playId; mode = m; running = true; rideClock = 0; km = stops[i0].km;
+    $("hud").classList.toggle("hidden", m === "helmet"); $("leg").classList.remove("hidden"); $("close").classList.remove("hidden");
+    $("visor").classList.toggle("hidden", m !== "helmet");
     setGestures(false);
-    rider.addTo(map); setProgress(at(km).frac);
-    const p0 = at(km), p1 = at(km + 30), seg0 = segs[i0] || segs[i0 - 1];
-    cam = { bearing: bearing(p0, p1), zoom: seg0.zoom, pitch: seg0.pitch };
-    await new Promise((r) => { map.flyTo({ center: [p0.lng, p0.lat], zoom: cam.zoom, pitch: cam.pitch, bearing: cam.bearing, padding: pad(), duration: REC ? 2600 : 3200, essential: true }); map.once("moveend", r); });
+    if (m === "helmet") rider.remove(); else rider.addTo(map);
+    map.setTerrain({ source: "dem", exaggeration: m === "helmet" ? 1.15 : 1.35 });
+    setProgress(at(km).frac);
+    const p0 = at(km), p1 = at(km + (m === "helmet" ? 3 : 30)), seg0 = segs[i0] || segs[i0 - 1];
+    cam = m === "helmet" ? { bearing: bearing(p0, p1), zoom: 12.9, pitch: 71 } : { bearing: bearing(p0, p1), zoom: seg0.zoom, pitch: seg0.pitch };
+    const c0 = m === "helmet" ? at(km + 0.6) : p0;
+    await new Promise((r) => { map.flyTo({ center: [c0.lng, c0.lat], zoom: cam.zoom, pitch: cam.pitch, bearing: cam.bearing, padding: pad(), duration: REC ? 2600 : 3200, essential: true }); map.once("moveend", r); });
     for (let i = i0; i <= i1; i++) {
       if (!running || run !== playId) return;
-      const prev = segs[i - 1], next = segs[i];
-      if (i > i0) await runSeg(prev);
+      if (i > i0) await runSeg(segs[i - 1], m === "helmet" ? 2.6 : 1);
       if (!running || run !== playId) return;
-      await showStop(stops[i], (next || prev).zoom + (i === 0 || i === stops.length - 1 ? 0 : 0.4), (next || prev).pitch);
+      const ref = segs[i] || segs[i - 1];
+      await showStop(stops[i], ref.zoom + (i === 0 || i === stops.length - 1 ? 0 : 0.4), ref.pitch);
     }
-    if (run === playId) finale();
+    if (run !== playId) return;
+    if (m === "helmet") { stopAll(); map.setTerrain({ source: "dem", exaggeration: 1.35 }); home(); celebrate("pass"); }
+    else finale();
   }
-  let playId = 0;
 
-  // ---- explore: drag along the elevation profile, tap stops ----
+  function finale() {
+    running = false; hideAll();
+    map.flyTo({ center: [77.02, 30.6], zoom: 6.6, pitch: 30, bearing: -8, padding: { top: 0, bottom: Math.round(innerHeight * 0.5), left: 0, right: 0 }, duration: 4200, essential: true });
+    setProgress(1); rider.remove();
+    $("end").classList.remove("hidden"); $("end").scrollTop = 0;
+    window.__done = true;
+  }
+
+  // gentle orbit over the valley behind the home sheet
+  let orbiting = false;
+  async function home() {
+    stopAll(); hideAll(); await mapReady; setGestures(false); rider.remove();
+    mode = "chase";
+    $("home").classList.remove("hidden");
+    setProgress(1);
+    const sissu = stops[ix("sissu")];
+    map.flyTo({ center: [sissu.lon + 0.03, sissu.lat + 0.07], zoom: 9.6, pitch: 62, bearing: 20, padding: { top: 0, bottom: Math.round(innerHeight * 0.5), left: 0, right: 0 }, duration: 2600, essential: true });
+    map.once("moveend", () => {
+      if ($("home").classList.contains("hidden")) return;
+      orbiting = true; let last = performance.now();
+      const spin = (now) => { if (!orbiting) return; map.setBearing(map.getBearing() + (now - last) / 1000 * 2.2); last = now; raf = requestAnimationFrame(spin); };
+      raf = requestAnimationFrame(spin);
+    });
+  }
+
+  // ---------- explore ----------
   const prof = $("prof");
   (function drawProfile() {
     const n = 500, pts = [];
-    for (let k = 0; k <= n; k++) {
-      const i = idxAt((k / n) * TOTAL);
-      pts.push(`${(k / n * 1000).toFixed(1)},${(100 - (track[i][2] / 5600) * 92).toFixed(1)}`);
-    }
+    for (let k = 0; k <= n; k++) { const i = idxAt((k / n) * TOTAL); pts.push(`${(k / n * 1000).toFixed(1)},${(100 - (track[i][2] / 5600) * 92).toFixed(1)}`); }
     $("prof-line").setAttribute("d", "M" + pts.join("L"));
     $("prof-area").setAttribute("d", "M0,100L" + pts.join("L") + "L1000,100Z");
   })();
   stops.forEach((s, i) => {
     if (s.id === "delhi_end") return;
-    const b = document.createElement("button");
-    b.textContent = s.name; b.dataset.i = i;
-    b.onclick = () => goStop(i);
-    $("chips").appendChild(b);
+    const b = document.createElement("button"); b.textContent = s.name; b.dataset.i = i; b.onclick = () => goStop(i);
+    $("stopchips").appendChild(b);
   });
-
-  let follow = null;
   function setKm(k, moveCamera) {
     km = Math.max(0, Math.min(TOTAL, k));
     const p = updateHud(km);
-    rider.setLngLat([p.lng, p.lat]);
-    setProgress(p.frac);
+    setProgress(p.frac); placeRider(p, headingAt(km));
     $("thumb").style.left = (km / TOTAL * 100) + "%";
     if (moveCamera) map.jumpTo({ center: [p.lng, p.lat] });
     return p;
   }
-  function closeCard() { $("card").classList.remove("show"); $("card").onclick = null; }
+  function closeCard() { $("card").classList.remove("show"); $("card").onclick = null; clearInterval(carTimer); }
   function goStop(i) {
     const s = stops[i], p = setKm(s.km, false);
-    document.querySelectorAll("#chips button").forEach((b) => b.classList.toggle("on", +b.dataset.i === i));
-    map.flyTo({ center: [p.lng, p.lat], zoom: i === 0 || i === stops.length - 1 ? 9.5 : 11, pitch: 58, padding: { top: 0, bottom: Math.round(innerHeight * 0.45), left: 0, right: 0 }, duration: 2200, essential: true });
+    document.querySelectorAll("#stopchips button").forEach((b) => b.classList.toggle("on", +b.dataset.i === i));
+    map.flyTo({ center: [p.lng, p.lat], zoom: i === 0 || i === stops.length - 1 ? 9.5 : 11, pitch: 58, padding: { top: 0, bottom: Math.round(innerHeight * 0.5), left: 0, right: 0 }, duration: 2200, essential: true });
     fillCard(s);
     document.querySelector("#card .tap").textContent = "Tap to close";
-    $("card").classList.add("show");
-    $("card").onclick = closeCard;
+    $("card").classList.add("show"); $("card").onclick = closeCard;
   }
-  function explore(startKm) {
-    running = false; playId++; cancelAnimationFrame(raf);
+  async function explore() {
+    started = true; stopAll(); hideAll(); mode = "chase";
+    await mapReady;
     document.body.classList.add("exploring");
-    ["end", "title"].forEach((id) => $(id).classList.add("hidden"));
-    closeCard(); rf.style.display = "none";
-    $("hud").classList.remove("hidden"); $("leg").classList.remove("hidden"); $("scrub").classList.remove("hidden");
-    setGestures(true);
-    rider.addTo(map);
-    const p = setKm(startKm, false);
-    map.flyTo({ center: [p.lng, p.lat], zoom: 10.5, pitch: 58, bearing: 20, padding: { top: 0, bottom: 150, left: 0, right: 0 }, duration: 2800, essential: true });
+    ["hud", "leg", "scrub"].forEach((id) => $(id).classList.remove("hidden"));
+    setGestures(true); rider.addTo(map);
+    const p = setKm(stops[ix("sissu")].km, false);
+    map.flyTo({ center: [p.lng, p.lat], zoom: 10.5, pitch: 58, bearing: 20, padding: { top: 0, bottom: 160, left: 0, right: 0 }, duration: 2800, essential: true });
   }
-  const scrubAt = (e) => {
-    const r = prof.getBoundingClientRect();
-    setKm(((e.clientX - r.left) / r.width) * TOTAL, true);
-  };
+  const scrubAt = (e) => { const r = prof.getBoundingClientRect(); setKm(((e.clientX - r.left) / r.width) * TOTAL, true); };
   prof.addEventListener("pointerdown", (e) => { prof.setPointerCapture(e.pointerId); closeCard(); map.stop(); scrubAt(e); });
   prof.addEventListener("pointermove", (e) => { if (prof.hasPointerCapture(e.pointerId)) scrubAt(e); });
   map.on("click", "stops-hit", (e) => {
     if (!document.body.classList.contains("exploring")) return;
-    const i = stops.findIndex((s) => s.id === e.features[0].properties.id);
-    if (i >= 0) goStop(i);
+    const i = ix(e.features[0].properties.id); if (i >= 0) goStop(i);
   });
-  map.on("mouseenter", "stops-hit", () => { map.getCanvas().style.cursor = "pointer"; });
-  map.on("mouseleave", "stops-hit", () => { map.getCanvas().style.cursor = ""; });
-  $("s-replay").onclick = () => play();
+  map.on("move", () => { if (document.body.classList.contains("exploring")) placeRider(at(km), headingAt(km)); });
 
-  function finale() {
-    running = false;
-    $("hud").classList.add("hidden"); $("leg").classList.add("hidden");
-    map.flyTo({ center: [77.02, 30.85], zoom: 6.9, pitch: 38, bearing: -8, padding: { top: 0, bottom: Math.round(innerHeight * 0.45), left: 0, right: 0 }, duration: 4200, essential: true });
-    setProgress(1);
-    $("end").classList.remove("hidden");
-    $("end").scrollTop = 0;
-    window.__done = true;
+  // ---------- helmet stickers ----------
+  const atlasFacts = (extra) => {
+    const f = { maxEle: stats.highest.ele, atal: true, maxTripKm: stats.total_km, maxClimb: stats.climb_m, basedWeek: true, gompa: true, kaza: false, lifeKm: stats.total_km, pillion: false };
+    if (extra) { f.maxEle = Math.max(f.maxEle, extra.maxEle); f.maxTripKm = Math.max(f.maxTripKm, extra.km); f.maxClimb = Math.max(f.maxClimb, extra.climb); f.lifeKm += extra.km; f.kaza = f.kaza || extra.kaza; }
+    return f;
+  };
+  function renderStickers(facts, fresh = []) {
+    const h = $("helmet"); h.querySelectorAll(".sticker").forEach((n) => n.remove());
+    let earned = 0;
+    STICKERS.forEach((s, k) => {
+      const got = s.when(facts); if (got) earned++;
+      const b = document.createElement("button");
+      b.className = "sticker" + (got ? "" : " locked") + (fresh.includes(s.id) ? " pop" : "");
+      b.style.left = s.x + "%"; b.style.top = s.y + "%";
+      b.style.background = s.bg; b.style.transform = `rotate(${((k * 37) % 25) - 12}deg)`;
+      b.style.animationDelay = (fresh.indexOf(s.id) * 0.15) + "s";
+      b.innerHTML = `<span><span class="e">${s.e}</span>${got ? s.t : "?"}</span>`;
+      b.onclick = () => {
+        h.querySelectorAll(".sticker").forEach((n) => n.classList.remove("sel")); b.classList.add("sel");
+        $("stk-info").innerHTML = `<div class="st" style="color:${got ? "var(--accent-deep)" : "var(--faint)"}">${got ? "Earned" : "Locked"}</div><b>${s.e} ${s.name}</b><p>${got ? (s.got || s.how) : s.how}</p>`;
+      };
+      h.appendChild(b);
+    });
+    $("stk-title").textContent = `${earned} of ${STICKERS.length} on the lid`;
+    $("stk-count").textContent = `${earned} of ${STICKERS.length} earned`;
+    const life = facts.lifeKm;
+    $("odo-bar").style.width = Math.min(100, life / 5000 * 100) + "%";
+    $("odo-text").textContent = `${fmt(life)} of 5,000 km to the next big sticker`;
+    return earned;
+  }
+  renderStickers(atlasFacts());
+  function openModal(id) { $(id).classList.remove("hidden"); }
+  document.querySelectorAll(".modal").forEach((m) => m.addEventListener("click", (e) => { if (e.target === m || e.target.hasAttribute("data-close")) m.classList.add("hidden"); }));
+  function celebrate() { renderStickers(atlasFacts(), STICKERS.filter((s) => s.when(atlasFacts())).map((s) => s.id)); openModal("stickers"); }
+
+  // ---------- add a ride (GPX preview, local only) ----------
+  $("gpx").onchange = async (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    try {
+      const xml = new DOMParser().parseFromString(await file.text(), "application/xml");
+      const pts = [...xml.querySelectorAll("trkpt, rtept")].map((n) => [+n.getAttribute("lon"), +n.getAttribute("lat"), +(n.querySelector("ele")?.textContent || NaN)]);
+      if (pts.length < 2) throw new Error("no track points");
+      let dist = 0, climb = 0, maxEle = 0, kaza = false;
+      for (let i = 1; i < pts.length; i++) {
+        const a = { lng: pts[i - 1][0], lat: pts[i - 1][1] }, b = { lng: pts[i][0], lat: pts[i][1] };
+        const r = Math.PI / 180, h = Math.sin((b.lat - a.lat) * r / 2) ** 2 + Math.cos(a.lat * r) * Math.cos(b.lat * r) * Math.sin((b.lng - a.lng) * r / 2) ** 2;
+        dist += 12742 * Math.asin(Math.sqrt(h));
+        if (pts[i][2] > pts[i - 1][2]) climb += pts[i][2] - pts[i - 1][2];
+        if (pts[i][2] > maxEle) maxEle = pts[i][2];
+        if (Math.abs(pts[i][1] - 32.22) < 0.05 && Math.abs(pts[i][0] - 78.07) < 0.05) kaza = true;
+      }
+      const name = xml.querySelector("trk > name, metadata > name")?.textContent || file.name.replace(/\.gpx$/i, "");
+      if (!map.getSource("demWorld")) {   // outside the bundled tiles, borrow open AWS terrain for a hillshade
+        map.addSource("demWorld", { type: "raster-dem", tiles: ["https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"], tileSize: 256, encoding: "terrarium", maxzoom: 12 });
+        map.addLayer({ id: "world", type: "hillshade", source: "demWorld", paint: { "hillshade-shadow-color": "#9c8a72", "hillshade-highlight-color": "#fff8ec", "hillshade-accent-color": "#b8a68c", "hillshade-exaggeration": 0.55 } }, "lo");
+      }
+      map.getSource("gpx").setData({ type: "Feature", geometry: { type: "LineString", coordinates: pts.map((p) => [p[0], p[1]]) } });
+      const before = STICKERS.filter((s) => s.when(atlasFacts())).map((s) => s.id);
+      const facts = atlasFacts({ km: dist, climb, maxEle: maxEle || 0, kaza });
+      const now = STICKERS.filter((s) => s.when(facts));
+      const fresh = now.filter((s) => !before.includes(s.id));
+      $("gpx-result").innerHTML = `<div class="chapter"><div class="eyebrow">Preview</div><h2 style="font-size:20px">${name.replace(/[<>&]/g, "")}</h2>
+        <div class="nums"><div><b>${fmt(dist)}</b><span>km</span></div><div><b>${maxEle ? fmt(maxEle) + " m" : "–"}</b><span>highest</span></div><div><b>${climb ? fmt(climb) : "–"}</b><span>m climbed</span></div></div>
+        <div style="font-size:14px">${fresh.length ? "🎉 Would earn: " + fresh.map((s) => s.e + " " + s.name).join(", ") : "No new stickers from this one. Ride higher, ride further!"}</div>
+        <div class="acts" style="margin-top:12px"><button class="btn primary wide" id="gpx-show">See it on the map</button></div></div>`;
+      $("gpx-show").onclick = () => {
+        $("addride").classList.add("hidden"); explore();
+        const b = pts.reduce((bb, p) => [[Math.min(bb[0][0], p[0]), Math.min(bb[0][1], p[1])], [Math.max(bb[1][0], p[0]), Math.max(bb[1][1], p[1])]], [[180, 90], [-180, -90]]);
+        setTimeout(() => map.fitBounds(b, { padding: { top: 120, bottom: 220, left: 40, right: 40 }, pitch: 50, duration: 2500 }), 300);
+        if (fresh.length) setTimeout(() => { renderStickers(facts, fresh.map((s) => s.id)); openModal("stickers"); }, 3200);
+      };
+    } catch (err) {
+      $("gpx-result").innerHTML = `<p style="color:#b3261e">Couldn't read that file. Is it a .gpx track?</p>`;
+    }
+  };
+
+  // ---------- show it off ----------
+  async function shareCard() {
+    const c = document.createElement("canvas"); c.width = 1080; c.height = 1350;
+    const g = c.getContext("2d");
+    g.fillStyle = "#fbf7f1"; g.fillRect(0, 0, 1080, 1350);
+    const grd = g.createLinearGradient(0, 0, 0, 640); grd.addColorStop(0, "#86b3db"); grd.addColorStop(1, "#f7d9b9");
+    g.fillStyle = grd; g.fillRect(0, 0, 1080, 640);
+    // mountains silhouette from the real elevation profile (mountain section)
+    const a0 = stops[ix("sundernagar")].km, a1 = stops[ix("koksar")].km;
+    g.beginPath(); g.moveTo(0, 640);
+    for (let x = 0; x <= 1080; x += 4) { const p = at(a0 + (a1 - a0) * x / 1080); g.lineTo(x, 640 - (p.ele / 5200) * 420); }
+    g.lineTo(1080, 640); g.closePath(); g.fillStyle = "#8a7a66"; g.fill();
+    g.beginPath(); g.moveTo(0, 640);
+    for (let x = 0; x <= 1080; x += 4) { const p = at(a0 + (a1 - a0) * x / 1080); g.lineTo(x, 640 - (p.ele / 5200) * 420); }
+    g.strokeStyle = "#e0662c"; g.lineWidth = 7; g.stroke();
+    const riderImg = await new Promise((r) => { const im = new Image(); im.onload = () => r(im); im.src = "art/rider-rear.svg"; });
+    const bx = 1080 * (stops[ix("baralacha")].km - a0) / (a1 - a0);
+    g.drawImage(riderImg, bx - 60, 640 - (stats.highest.ele / 5200) * 420 - 150, 120, 150);
+    g.fillStyle = "#1e1c1a"; g.font = "700 30px -apple-system, Helvetica, Arial"; g.fillText("SAURABH'S RIDE ATLAS · CHAPTER 1", 70, 730);
+    g.font = "800 120px -apple-system, Helvetica, Arial"; g.fillText("Lahaul", 64, 860);
+    g.font = "500 38px -apple-system, Helvetica, Arial"; g.fillStyle = "#6d675f"; g.fillText("Delhi to Baralacha La and back · May 2026", 70, 925);
+    const nums = [[fmt(stats.total_km), "km ridden"], [fmt(stats.climb_m) + " m", "climbed"], [fmt(stats.highest.ele) + " m", "highest"]];
+    nums.forEach(([v, k], i) => { g.fillStyle = "#e0662c"; g.font = "800 64px -apple-system, Helvetica, Arial"; g.fillText(v, 70 + i * 330, 1060); g.fillStyle = "#6d675f"; g.font = "500 30px -apple-system, Helvetica, Arial"; g.fillText(k, 70 + i * 330, 1105); });
+    g.fillStyle = "#1e1c1a"; g.font = "600 30px -apple-system, Helvetica, Arial"; g.fillText("Royal Enfield Himalayan 450 · DL 10AH 2818", 70, 1230);
+    g.fillStyle = "#a39b90"; g.font = "500 26px -apple-system, Helvetica, Arial"; g.fillText(location.host + location.pathname, 70, 1280);
+    const blob = await new Promise((r) => c.toBlob(r, "image/png"));
+    const file = new File([blob], "lahaul-ride.png", { type: "image/png" });
+    const data = { title: "Saurabh's Ride Atlas", text: `${fmt(stats.total_km)} km from Delhi to Baralacha La (${fmt(stats.highest.ele)} m) and back on the Himalayan.`, url: location.href.split("?")[0] };
+    try {
+      if (navigator.canShare && navigator.canShare({ files: [file] })) await navigator.share({ ...data, files: [file] });
+      else if (navigator.share) await navigator.share(data);
+      else { const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "lahaul-ride.png"; a.click(); }
+    } catch (e) { /* share sheet dismissed */ }
   }
 
-  // ---- static content ----
+  // ---------- static content ----------
+  $("traits").innerHTML = CONTENT.traits.map((t) => `<span class="chip">${t}</span>`).join("");
+  $("n-km").textContent = fmt(stats.total_km);
+  $("n-hi").textContent = fmt(stats.highest.ele) + " m";
   const c = CONTENT.closing;
-  $("e-photo").src = c.photo;
   $("e-head").textContent = c.head;
   $("e-note").innerHTML = c.paras.map((p) => `<p>${p}</p>`).join("") + `<p class="sig">${c.sig}</p>`;
-  $("e-km").textContent = fmt(stats.total_km) + " km";
-  $("e-up").textContent = fmt(stats.climb_m) + " m";
-  $("e-hi").textContent = fmt(stats.highest.ele) + " m";
+  $("credits").innerHTML = "Photos from Wikimedia Commons: " + Object.values(credits).map((v) => `<a href="${v.page}" target="_blank" rel="noopener">${v.author}</a> (${v.license})`).join(", ") +
+    ". Route © OpenStreetMap contributors. Terrain: Copernicus DEM GLO-30 © ESA, AWS Terrain Tiles.";
 
-  const rf = { style: {} };  // (old floating replay button, superseded by the scrub bar)
   $("go").onclick = () => play();
+  $("helmet-cam").onclick = () => play(ix("keylong"), ix("baralacha"), "helmet");
+  $("t-explore").onclick = explore;
+  $("x-home").onclick = home;
+  $("close").onclick = home;
+  $("e-home").onclick = home;
   $("replay").onclick = () => play();
-  $("explore").onclick = () => explore(stops.find((s) => s.id === "sissu").km);
-  $("t-explore").onclick = () => explore(stops.find((s) => s.id === "sissu").km);
+  $("open-stickers").onclick = () => { renderStickers(atlasFacts()); openModal("stickers"); };
+  $("add-ride").onclick = () => openModal("addride");
+  $("song").onclick = () => window.open(CONTENT.song, "_blank", "noopener");
+  $("share").onclick = shareCard;
 
-  // ---- on this day: 24-31 May, every year after the ride ----
+  // ---------- on this day: 24-31 May, every year after the ride ----------
   (function onThisDay() {
-    const q = new URLSearchParams(location.search).get("date");    // ?date=2027-05-27 to preview
-    const d = q ? new Date(q + "T12:00:00+05:30") : new Date();
+    const d = Q.get("date") ? new Date(Q.get("date") + "T12:00:00+05:30") : new Date();
     const ist = new Date(d.getTime() + (330 + d.getTimezoneOffset()) * 60000);
     const years = ist.getFullYear() - 2026, day = ist.getDate();
     if (REC || ist.getMonth() !== 4 || day < 24 || years < 1) return;
     const ago = years === 1 ? "One year ago" : `${years} years ago`;
-    const ix = (id) => stops.findIndex((s) => s.id === id);
     const plan = day === 24 ? [`${ago} today: Day 1, Delhi to Sundernagar.`, ix("delhi"), ix("sundernagar")]
       : day === 25 ? [`${ago} today: Day 2, over the Atal Tunnel to Sissu.`, ix("sundernagar"), ix("sissu")]
       : day === 31 ? [`${ago} today: Day 8, the long road home.`, ix("koksar"), ix("delhi_end")]
       : [`${ago} this week, you were in Lahaul.`, ix("keylong"), ix("baralacha")];
     $("otd-text").textContent = plan[0];
     $("otd").style.display = "block";
-    $("go").textContent = day >= 26 && day <= 30 ? "Ride the high road" : "Ride today's leg";
+    $("go").innerHTML = day >= 26 && day <= 30 ? "▶&nbsp; Ride the high road again" : "▶&nbsp; Ride today's leg again";
     $("go").onclick = () => play(plan[1], plan[2]);
-    $("t-explore").textContent = "Whole ride";
-    $("t-explore").onclick = () => play();
   })();
 
-  // ---- right now in Lahaul (live weather; hides itself if offline) ----
+  // ---------- right now in Lahaul (live weather; hides itself if offline) ----------
   (async function rightNow() {
     if (REC) return;
-    const words = (c) => c === 0 ? "clear" : c <= 2 ? "a few clouds" : c === 3 ? "overcast" : c <= 48 ? "fog"
-      : c <= 67 ? "rain" : c <= 77 ? "snow" : c <= 82 ? "showers" : c <= 86 ? "snow showers" : "storms";
+    const words = (k) => k === 0 ? "clear" : k <= 2 ? "a few clouds" : k === 3 ? "overcast" : k <= 48 ? "fog" : k <= 67 ? "rain" : k <= 77 ? "snow" : k <= 82 ? "showers" : k <= 86 ? "snow showers" : "storms";
     try {
       const ctl = new AbortController(); setTimeout(() => ctl.abort(), 6000);
       const r = await fetch("https://api.open-meteo.com/v1/forecast?latitude=32.469,32.758&longitude=77.132,77.417&current=temperature_2m,weather_code&timezone=Asia%2FKolkata", { signal: ctl.signal });
       const [sissu, bara] = await r.json();
       const t = (x) => `${Math.round(x.current.temperature_2m)}°`.replace("-", "−");
-      $("now").innerHTML = `Right now &middot; <b>Sissu</b> ${t(sissu)}, ${words(sissu.current.weather_code)} &middot; <b>Baralacha La</b> ${t(bara)}, ${words(bara.current.weather_code)}`;
+      $("now").innerHTML = `Right now in Lahaul · <b>Sissu</b> ${t(sissu)}, ${words(sissu.current.weather_code)} · <b>Baralacha La</b> ${t(bara)}, ${words(bara.current.weather_code)}`;
     } catch (e) { $("now").style.display = "none"; }
   })();
 
   map.on("load", () => {
     window.__ready = true;
-    if (REC) setTimeout(play, 2500);
+    if (REC) setTimeout(() => play(), 2500);
+    else if (Q.has("end")) { started = true; finale(); }   // jump to the birthday note
+    else if (!started) home();   // don't cancel a ride he already tapped while tiles were loading
   });
 })();
 </script>
