@@ -106,7 +106,7 @@
   /* title extras */
   #title .row { display: flex; gap: 10px; flex-wrap: wrap; }
   #title { justify-content: flex-start; overflow-y: auto; padding-top: calc(24px + env(safe-area-inset-top)); }
-  #title > :first-child { margin-top: auto; }  /* bottom-aligned, but scrolls instead of clipping on short phones */
+  #title::before { content: ""; margin-top: auto; }  /* bottom-aligned, but scrolls instead of clipping on short phones */
   button.pill.quiet { border-color: var(--line); }
   #now { font-size: 12px; color: var(--muted); margin-top: 22px; letter-spacing: .02em; line-height: 1.5; min-height: 18px; transition: opacity .8s; }
   #now b { font-weight: 600; color: var(--ink); }
