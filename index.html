@@ -188,6 +188,9 @@
   #bubble { position: absolute; left: 14px; right: 14px; bottom: 34px; background: #fff; border-radius: 16px; padding: 10px 12px; font-size: 14px; line-height: 1.4; box-shadow: 0 6px 20px rgba(40,30,20,.18); opacity: 0; transform: translateY(6px); transition: .3s; pointer-events: none; z-index: 2; }
   #bubble.show { opacity: 1; transform: none; }
   #bubble b { color: var(--accent-deep); }
+  .outfits { display: flex; gap: 6px; margin: 0 0 10px; }
+  .outfits button { flex: 1; border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 10px; font: 600 13px/1 var(--font); cursor: pointer; }
+  .outfits button.on { background: var(--ink); color: #fff; border-color: var(--ink); }
   .spec { margin-top: 16px; border: 1.5px solid var(--ink); border-radius: 16px; overflow: hidden; background: #fff; }
   .spec .hd { background: var(--ink); color: #fff; padding: 10px 14px; display: flex; justify-content: space-between; align-items: baseline; font: 700 12px/1 ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: .1em; }
   .spec .row { display: grid; grid-template-columns: 42% 58%; border-top: 1px solid var(--line); }
@@ -321,6 +324,7 @@
   <div class="grab"></div><button class="x" data-close style="z-index:2">✕</button>
   <div class="eyebrow">Rider profile</div>
   <h2 style="margin-bottom:12px">Saurabh, 3D</h2>
+  <div class="outfits" id="outfits"><button class="on" data-o="ride">🧡 Ride kit</button><button data-o="duty">🕶️ Off duty</button></div>
   <div id="stage"><div class="loading">Assembling the rider…</div><div id="bubble"></div><div class="hint">Drag to spin · tap any part</div></div>
   <div class="spec" id="spec"></div>
 </div></div>
@@ -401,7 +405,8 @@ const PROFILE = {
     ["Features", ["🎸 Sings", "🧰 Provides", "🧡 Cares", "😊 Smiles and keeps you happy"]],
     ["Engine", "Coffee-powered. Peak performance after midnight."],
     ["Sound system", "Live vocals and guitar. Exports straight to WhatsApp voice notes."],
-    ["Exterior", "Burnt-orange puffer. Premium salt-and-pepper beard. Camo lid."],
+    ["Exterior", "Burnt-orange puffer. Premium full beard. Camo lid."],
+    ["Accessories", "Burberry crossbody, aviators, black smartwatch, bead bracelet"],
     ["Max altitude tested", "4,907 m, Baralacha La"],
     ["Fuel economy", "About one coffee every 50 km (estimated)"],
     ["Known quirks", "Talks sweetly to every stranger. Always says yes to one more song."],
@@ -420,6 +425,14 @@ const PROFILE = {
     earplug: "<b>Ear tunnel.</b> Factory fitted. Very cool.",
     jacket: "<b>Burnt-orange puffer.</b> Visible from Baralacha La. Huggable.",
     boots: "<b>Boots.</b> Shows up, every time. Provides. Cares.",
+    bag: "<b>Burberry crossbody.</b> Never leaves home without it. Carries everything Lavanya hands him.",
+    shades: "<b>Aviators.</b> Main-character mode: on.",
+    watch: "<b>Smartwatch.</b> Tracks the steps between coffee stops.",
+    bracelet: "<b>Bead bracelet.</b> Never comes off.",
+    tee: "<b>Off-duty fit.</b> Same smile, fewer layers.",
+    jeans: "<b>Cargo denim.</b> Pockets for hands, picks and snacks.",
+    shoes: "<b>Sneakers.</b> For long walks with Lavanya.",
+    football: "<b>Football.</b> Off duty means always up for a kickabout. Coffee in one hand, ball at his feet.",
   },
 };
 
@@ -843,9 +856,13 @@ const fmt = (n) => Math.round(n).toLocaleString("en-IN");
       });
       $("stage").querySelector(".hint").style.zIndex = 1;
     } catch (e) {
-      $("stage").querySelector(".loading").textContent = "The 3D rider needs a newer browser, but the spec sheet still applies.";
+      $("stage").querySelector(".loading").textContent = "Couldn't load the 3D rider. Check your connection and open this again.";
     }
   }
+  document.querySelectorAll("#outfits button").forEach((b) => b.onclick = () => {
+    document.querySelectorAll("#outfits button").forEach((x) => x.classList.toggle("on", x === b));
+    if (model) model.setOutfit(b.dataset.o);
+  });
   $("open-profile").onclick = openProfile;
   $("avatar").onclick = openProfile;
   $("profile").addEventListener("click", (e) => { if ((e.target === $("profile") || e.target.hasAttribute("data-close")) && model) model.pause(); });
