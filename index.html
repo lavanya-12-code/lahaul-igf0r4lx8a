@@ -403,9 +403,34 @@ const fmt = (n) => Math.round(n).toLocaleString("en-IN");
   }
 
   // ---------- map ----------
+  // Tile files are read in byte ranges. A CDN cache miss can answer with the whole file (200) instead of
+  // the slice (206); stock pmtiles treats that as fatal and the map never loads. Accept both.
+  class RangeOrWholeSource {
+    constructor(url) { this.url = url; this.whole = null; }
+    getKey() { return this.url; }
+    async getBytes(offset, length, signal) {
+      if (this.whole) return { data: this.whole.slice(offset, offset + length) };
+      for (let attempt = 0; ; attempt++) {
+        try {
+          const headers = Q.has("norange") ? {} : { Range: `bytes=${offset}-${offset + length - 1}` };   // ?norange exercises the fallback
+          const r = await fetch(this.url, { headers, signal });
+          if (r.status === 206) return { data: await r.arrayBuffer() };
+          if (r.ok) { this.whole = await r.arrayBuffer(); return { data: this.whole.slice(offset, offset + length) }; }
+          throw new Error(`HTTP ${r.status}`);
+        } catch (err) {
+          if ((signal && signal.aborted) || attempt >= 2) throw err;
+          await new Promise((res) => setTimeout(res, 600 * (attempt + 1)));
+        }
+      }
+    }
+  }
   const proto = new pmtiles.Protocol();
   maplibregl.addProtocol("pmtiles", proto.tile);
-  const tiles = (f) => "pmtiles://" + new URL("tiles/" + f, location.href).href;
+  const tiles = (f) => {
+    const url = new URL("tiles/" + f, location.href).href;
+    proto.add(new pmtiles.PMTiles(new RangeOrWholeSource(url)));
+    return "pmtiles://" + url;
+  };
   const map = new maplibregl.Map({
     container: "map",
     pixelRatio: Math.min(window.devicePixelRatio || 1, 2),
